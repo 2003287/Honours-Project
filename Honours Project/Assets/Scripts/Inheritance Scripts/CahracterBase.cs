@@ -6,27 +6,35 @@ public class CahracterBase : MonoBehaviour
 {
     //speed the character moves at
     [SerializeField]
-    float MovementSpeed = 1.0f;
+    protected float MovementSpeed = 1.0f;
 
     //the amount of health that the object has
     [SerializeField]
-    float HealthPoint = 100.0f;
+     protected float HealthPoint = 100.0f;
 
     //fi the character is still alive or not
     [SerializeField]
-    bool alive = true;
+    bool alive;
 
     //the speed that there projectile fires at
     [SerializeField]
-    float ProjectileSpeed = 1.0f;
+    protected float ProjectileSpeed = 1.0f;
 
     //ammunition count for the character
     [SerializeField]
-    float AmmoCount = 30.0f;
+    protected float AmmoCount = 30.0f;
 
     //Fired a projectile
     [SerializeField]
-    bool FiredProjectile = false;
+    bool FiredProjectile;
+
+    //projectile
+    [SerializeField]
+    protected GameObject projectile;
+
+    //position of the gun
+    [SerializeField]
+    protected GameObject gunpos;
     // Start is called before the first frame update
     void Start()
     {
