@@ -190,8 +190,10 @@ MonoBehaviour:
   alive: 1
   ProjectileSpeed: 15
   AmmoCount: 30
+  reloading: 0
   FiredProjectile: 0
   projectile: {fileID: 5128949473366087435, guid: 8e6f020eecc7ba548bfbaa0ba26e235e, type: 3}
+  ammotimer: 0
   gunpos: {fileID: 357628920}
   PLayer: {fileID: 89043140}
   MouseSpeed: 200
@@ -782,7 +784,12 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Press F to reload
+  m_text: 'Press F to reload
+
+    left click on the mouse to fire
+
+    aswd or arrows
+    to move and mouse as camera'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
