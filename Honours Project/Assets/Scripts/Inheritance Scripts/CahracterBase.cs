@@ -24,6 +24,9 @@ public class CahracterBase : MonoBehaviour
     [SerializeField]
     protected float AmmoCount = 30.0f;
 
+    [SerializeField]
+    protected bool reloading;
+
     //Fired a projectile
     [SerializeField]
     bool FiredProjectile;
@@ -32,6 +35,8 @@ public class CahracterBase : MonoBehaviour
     [SerializeField]
     protected GameObject projectile;
 
+    [SerializeField]
+    protected float ammotimer;
     //position of the gun
     [SerializeField]
     protected GameObject gunpos;

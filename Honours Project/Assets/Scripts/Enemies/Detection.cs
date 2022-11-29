@@ -16,7 +16,7 @@ public class Detection : MonoBehaviour
     {
         
     }
-
+    //the player has collided with the object
     private void OnTriggerEnter(Collider other)
     {
         if (other.name == "Player")
@@ -24,7 +24,7 @@ public class Detection : MonoBehaviour
             touching = true;
         }
     }
-
+    //if the player leaves stop touching
     private void OnTriggerExit(Collider other)
     {
         if (other.name == "Player")
@@ -32,7 +32,7 @@ public class Detection : MonoBehaviour
             touching = false;
         }
     }
-
+    //allow other scripts to get touches
     public bool GetTouch()
     {
         return touching;

@@ -14,8 +14,13 @@ public class EnemyBase : CahracterBase
     [SerializeField]
     protected GameObject attackObject;
 
+    //for when the character is walking
     protected bool walking;
     protected int currentPosInt;
+
+    //basic timer
+    protected float timer;
+
     //switch statement to controll each state
     protected void EnemySwitchstate()
     {
@@ -26,7 +31,7 @@ public class EnemyBase : CahracterBase
                 break;
             case Enemystate.Following:
                 Followingstate();
-                Debug.Log("followstate");
+                
                 break;
             case Enemystate.Attack:
                 Attackstate();

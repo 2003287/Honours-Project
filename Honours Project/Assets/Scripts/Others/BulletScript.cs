@@ -19,6 +19,7 @@ public class BulletScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        //while alive the bullet will fire
         if (alive)
         {
             timer -= Time.deltaTime;
@@ -35,12 +36,19 @@ public class BulletScript : MonoBehaviour
        
     }
 
-
+    //when teh bullet collides with something check what it is
     private void OnCollisionEnter(Collision collision)
     {
+        //if its the ground destroy itself
         if (collision.gameObject.tag == "Ground")
         {
             Debug.Log("working");
+            Destroy(this.gameObject);
+        }
+        //if its the enemy change its state before destroying self
+        if (collision.gameObject.tag == "Enemy")
+        {
+            collision.gameObject.GetComponent<PatrollingEnemy>().BulletHit();
             Destroy(this.gameObject);
         }
     }
