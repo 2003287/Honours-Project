@@ -82,7 +82,7 @@ public class PatrollingEnemy : EnemyBase
             //walk towards the next position
             if (walking)
             {
-                var step = MovementSpeed * Time.deltaTime; // calculate distance to move
+                var step = normMovementSpeed * Time.deltaTime; // calculate distance to move
                 transform.position = Vector3.MoveTowards(transform.position, walkToPosition.position, step);
                 //when touching the new position switch positions
                 if (Vector3.Distance(transform.position, walkToPosition.position) < 0.001f)
@@ -99,7 +99,7 @@ public class PatrollingEnemy : EnemyBase
         else
         {
             //move towards teh orginal position to go back to walking
-            var step = MovementSpeed * Time.deltaTime; // calculate distance to move
+            var step = normMovementSpeed * Time.deltaTime; // calculate distance to move
             transform.position = Vector3.MoveTowards(transform.position, resetPosition.position, step);
             //when touching the new position switch positions
             if (Vector3.Distance(transform.position, resetPosition.position) < 0.001f)
@@ -229,7 +229,7 @@ public class PatrollingEnemy : EnemyBase
     // function to be used instead of the same lines of code over and over
     private void Movetoward(Transform move)
     {
-        var step = MovementSpeed * Time.deltaTime; // calculate distance to move
+        var step = normMovementSpeed * Time.deltaTime; // calculate distance to move
         transform.position = Vector3.MoveTowards(transform.position, move.position, step);
     }
 
