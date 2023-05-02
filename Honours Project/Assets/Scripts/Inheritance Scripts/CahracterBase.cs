@@ -6,16 +6,56 @@ using UnityEngine;
 
 namespace GameMovement.Network
 {
+    public static class SerializationFix64
+    {
+        public static void ReadValueSafe(this FastBufferReader reader, out Fix64 url)
+        {
+            reader.ReadValueSafe(out Fix64 val);
+            url = val;
+        }
 
+        public static void WriteValueSafe(this FastBufferWriter writer, in Fix64 url)
+        {
+            writer.WriteValueSafe(url.RawValue);
+        }
+    }
+    public static class SerializationVec264
+    {
+        public static void ReadValueSafe(this FastBufferReader reader, out FixedVec2 url)
+        {
+            reader.ReadValueSafe(out FixedVec2 val);
+            url = val;
+        }
+
+        public static void WriteValueSafe(this FastBufferWriter writer, in FixedVec2 url)
+        {
+            writer.WriteValueSafe(url);
+        }
+    }
+
+    public static class SerializationVec364
+    {
+        public static void ReadValueSafe(this FastBufferReader reader, out FixedVec3 url)
+        {
+            reader.ReadValueSafe(out FixedVec3 val);
+            url = val;
+        }
+
+        public static void WriteValueSafe(this FastBufferWriter writer, in FixedVec3 url)
+        {
+            writer.WriteValueSafe(url);
+        }
+    }
     public struct Playpostest : INetworkSerializable
     {
         //the players position
-        public Vector3 _playerpos;
+        //public Vector3 _playerpos;
+        public FixedVec3 _playerpos;
         //players Rotation
-        public Vector2 _rotation;
+        public FixedVec2 _rotation;
         //is player Grounded
         public bool _grounded;
-
+        
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             if (serializer.IsReader)
@@ -79,20 +119,17 @@ namespace GameMovement.Network
     //zombie Enum
     public enum Enemystate { Attacking, Running, Paused };
 
-    public struct TestData : INetworkSerializable
+    public struct PlayerData : INetworkSerializable
     {
         //player position
-        public Vector2 _position;
+        public FixedVec2 _position;
         //Direction
-        public Direction _direction;
-        //not used will be for firing
-        public bool _attacking;
+        public Direction _direction;      
         //the current tick of the game
         public int _id;
         //player movement state
         public MovementState _playerstate;
-        //is the player grounded
-        //public bool _grounded;
+    
        
      
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -101,34 +138,26 @@ namespace GameMovement.Network
             {
                 var reader = serializer.GetFastBufferReader();
                 reader.ReadValueSafe(out _position);
-                reader.ReadValueSafe(out _direction);
-                reader.ReadValueSafe(out _attacking);
+                reader.ReadValueSafe(out _direction);               
                 reader.ReadValueSafe(out _id);             
-                reader.ReadValueSafe(out _playerstate);             
-               // reader.ReadValueSafe(out _grounded);             
-                           
-                          
+                reader.ReadValueSafe(out _playerstate);                    
             }
             else
             {
                 var writer = serializer.GetFastBufferWriter();
                 writer.WriteValueSafe(_position);
-                writer.WriteValueSafe(_direction);
-                writer.WriteValueSafe(_attacking);
+                writer.WriteValueSafe(_direction);               
                 writer.WriteValueSafe(_id);               
-                writer.WriteValueSafe(_playerstate);               
-               // writer.WriteValueSafe(_grounded);               
-               
-               
+                writer.WriteValueSafe(_playerstate);              
             }
         }
     }
 
 
-    public struct FixedVec2
+    public struct FixedVec2 : INetworkSerializable
     {
-        Fix64 xpos;
-        Fix64 ypos;
+       public Fix64 xpos;
+       public Fix64 ypos;
 
         public FixedVec2(Fix64 x,Fix64 y)
         {
@@ -140,6 +169,62 @@ namespace GameMovement.Network
         {
             xpos = (Fix64)x;
             ypos = (Fix64)y;
+        }
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            if (serializer.IsReader)
+            {
+                var reader = serializer.GetFastBufferReader();
+                reader.ReadValueSafe(out xpos);
+                reader.ReadValueSafe(out ypos);
+            }
+            else
+            {
+                var writer = serializer.GetFastBufferWriter();
+                writer.WriteValueSafe(xpos);
+                writer.WriteValueSafe(ypos);
+            }
+        }
+    }
+
+    //public fixed vector 3
+    public struct FixedVec3 : INetworkSerializable
+    {
+        public Fix64 xfix;
+        public Fix64 yfix;
+        public Fix64 zfix;
+
+        public FixedVec3(Fix64 x, Fix64 y,Fix64 z)
+        {
+            xfix = x;
+            yfix = y;
+            zfix = z;
+        }
+
+        public FixedVec3(float x, float y, float z)
+        {
+            xfix = (Fix64)x;
+            yfix = (Fix64)y;
+            zfix = (Fix64)z;
+        }
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            if (serializer.IsReader)
+            {
+                var reader = serializer.GetFastBufferReader();
+                reader.ReadValueSafe(out xfix);
+                reader.ReadValueSafe(out yfix);
+                reader.ReadValueSafe(out zfix);
+            }
+            else
+            {
+                var writer = serializer.GetFastBufferWriter();
+                writer.WriteValueSafe(xfix);
+                writer.WriteValueSafe(yfix);
+                writer.WriteValueSafe(zfix);
+            }
         }
     }
     public enum MovementState {Moving,Attacking,Reloading,jumping};
@@ -203,7 +288,7 @@ public class CahracterBase : NetworkBehaviour
 
     //ammunition count for the character
     [SerializeField]
-    protected float AmmoCount = 30.0f;
+    protected float AmmoCount = 12.0f;
 
     [SerializeField]
     protected bool reloading;

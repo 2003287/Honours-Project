@@ -45,6 +45,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     /// <summary>
     /// Represents a Q31.32 fixed-point number.
     /// </summary>
+    [Serializable]
     public partial struct Fix64 : IEquatable<Fix64>, IComparable<Fix64>
     {
         readonly long m_rawValue;

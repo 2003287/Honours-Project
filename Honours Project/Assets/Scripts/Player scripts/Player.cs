@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using FixMath.NET;
 using UnityEngine;
 using Unity.Netcode;
+using TMPro;
 using UnityEngine.SceneManagement;
 using GameMovement.Network;
 
@@ -26,11 +27,8 @@ public class Player : CahracterBase
     //networkcomponent
     [SerializeField]
     private NetworkMovementClass netMove;
- 
+    //  public GameObject Text;
 
-   
-    public GameObject Text;
-    
 
     //health timer
     private float healthtimer =0;
@@ -49,10 +47,10 @@ public class Player : CahracterBase
 
     //Ammo Count
     [SerializeField]
-    float ammoMax = 30.0f;  
+    float ammoMax = 12.0f;  
 
     private bool isGrounded = false;
-    private bool running = false;
+
     private bool jumped = false;
     //ground position
     [SerializeField]
@@ -65,32 +63,37 @@ public class Player : CahracterBase
     //healthbarscript
     private HealthbarScript healthbar;
     //ammoscript
-    private AmmoScript ammotext;
+    private TMP_Text ammotext;
     //tickrate /// for id of each msg 
     private int tick = 0;
-    private float tickRate = 1.0f / 60.0f;
+    private readonly float tickRate = 1.0f / 60.0f;
     private float tickDeltaTime = 0f;
-
-    private int reloadTick = 0;
+  
     private bool reloadbool = false;
-    TestData oldstatetestdata;
-    TestData newtestdatata;
-
-    //player speed
-    float currentspeed = 0;
+    PlayerData oldstatetestdata;
+    PlayerData newtestdatata;
+    private bool artdelay;
+    private float delayTimer = 0.0f;
+    private int delayCount = 0;
+    public bool ArtificalDelay { set { artdelay = value; } }
+ 
     //list
-    List<TestData> testDatalist;
+    List<PlayerData> testDatalist;
     [SerializeField]
     public int framesReload = 3;
     private MovementState playerState;
     bool testingsends = false;
-   
-    public float GetHeath { get { return HealthPoint; } }
+    private bool noDamage;
+    public bool GetDamage => noDamage;
+    private int damageTick = 0;
+    public bool GetAlive => alive;
+
+    public float GetHeath => HealthPoint;
     public int GetFrameDelay { get { return frameDelay; } set { frameDelay = value; } }
     //player spawning in the scene
     public override void OnNetworkSpawn()
     {
-        
+        alive = true;
         //locks cursor will be used in final but not currently
         Cursor.lockState = CursorLockMode.Locked;
         Playerpositions = new List<Playpostest>();
@@ -103,11 +106,13 @@ public class Player : CahracterBase
             camera.transform.localRotation = Quaternion.identity;           
         }
         playerState = MovementState.Moving;
-        testDatalist = new List<TestData>();
+        testDatalist = new List<PlayerData>();
         healthbar = FindObjectOfType<HealthbarScript>();
         healthbar.Testing(HealthPoint);
-        ammotext = FindObjectOfType<AmmoScript>();
-        ammotext.ChangeText(AmmoCount);
+        AmmoCount = ammoMax;
+        var gm = GameObject.FindGameObjectWithTag("Ammo");
+        ammotext = gm.GetComponent<TMP_Text>();
+        ammotext.text = "Ammo Count: " + AmmoCount.ToString()+ "/"+ ammoMax.ToString();
     }
     // Update is called once per frame
     void Update()
@@ -124,7 +129,7 @@ public class Player : CahracterBase
                     if (PLayer)
                     {
                         PlayerRotationVoid();
-                        
+
                     }
 
                     PlayerMovementVoid();
@@ -139,22 +144,19 @@ public class Player : CahracterBase
                         if (Input.GetButtonDown("Fire1"))
                         {
                             Debug.Log("firing");
-                            playerState = MovementState.Attacking;                        
+                            playerState = MovementState.Attacking;
                         }
 
                     }
                     //testingsends
-                    if (Input.GetKeyDown(KeyCode.R))
+                    DelayMethod();
+                    if(noDamage)
                     {
-                        if (testingsends)
+                        var ts = damageTick + 40;
+                        if (tick > ts)
                         {
-                            testingsends = false;
+                            noDamage = false;
                         }
-                        else
-                        {
-                            testingsends = true;
-                        }
-                        
                     }
 
                     //gravity function testing
@@ -165,14 +167,14 @@ public class Player : CahracterBase
                     else
                     {
                         playerState = MovementState.jumping;
-                        playerPosTesting2._grounded = false; 
+                        playerPosTesting2._grounded = false;
                     }
-                    
+
                     //allow the player to reload
-                    if (AmmoCount <= 29.0f)
+                    if (AmmoCount < ammoMax)
                     {
                         //when pressed the player will start reloading
-                        if (Input.GetKeyDown(KeyCode.F))
+                        if (Input.GetButtonDown("Fire2"))
                         {
                             RStartReloading();
                         }
@@ -183,40 +185,41 @@ public class Player : CahracterBase
                     ammotimer -= Time.deltaTime;
                     //once the timer reaches 0 the player ahs reloaded
                     if (ammotimer <= 0.0f)
-                    {               
+                    {
                         reloading = false;
                         playerState = MovementState.Moving;
-                        ammotext.ChangeText(AmmoCount);
+                        ammotext.text = "Ammo Count: " + AmmoCount.ToString() + "/" + ammoMax.ToString();
                         reloadbool = false;
                     }
-                    var testtick = tick - frameDelay;
-                    if (reloadTick < testtick && !reloadbool)
+
+                    if (!reloadbool)
                     {
                         Reloading();
                         reloadbool = true;
-                        Debug.Log("reloadhashap" +tick);
-                    }                  
-                   
-                    newtestdatata._id = tick;                      
+
+                    }
+
+                    newtestdatata._id = tick;
                 }
-                if (HealthPoint < 100.0f)
-                {
-                    HealtingPLayer();
-                }
+                HealthMethod();
+
                 tickDeltaTime -= tickRate;
                 tick++;
-                playerPosTesting2._playerpos = transform.position;
-              
-                CreateSavestates();
+                
 
+                CreateSavestates();
+               
 
                 if (Input.GetKeyDown(KeyCode.H))
                 {
                     Debug.Log("the H was presed");
-                    GetComponent<NetworkObject>().Despawn();
+                    camera.transform.SetParent(null);
+                    if (GetComponent<NetworkObject>() != null)
+                    {
+                        GetComponent<NetworkObject>().Despawn();
+                    }
+                    
                     Destroy(this);
-
-
                 }
 
             }
@@ -225,7 +228,40 @@ public class Player : CahracterBase
 
     }
 
-  
+    private void HealthMethod()
+    {
+        if (HealthPoint < 100.0f)
+        {
+            HealtingPLayer();
+        }
+        if (HealthPoint <= 0)
+        {
+            alive = false;
+        }
+    }
+
+    private void DelayMethod()
+    {
+        if (artdelay && !testingsends)
+        {
+            delayTimer += Time.deltaTime;
+            if (delayTimer >= 2.0f)
+            {
+                testingsends = true;
+                int t = Random.Range(8, 23);
+                delayCount = tick + t;
+            }
+        }
+        if (testingsends)
+        {           
+            if (tick >= delayCount)
+            {
+                testingsends = false;
+                delayTimer = 0;
+            }
+        }
+    }
+
     private void RStartReloading()
     {
         reloading = true;
@@ -234,19 +270,23 @@ public class Player : CahracterBase
         playerState = MovementState.Reloading;       
         newtestdatata._playerstate = MovementState.Reloading;
         newtestdatata._direction = Direction.Idle;
+        newtestdatata._position = new FixedVec2(0,0);
         Debug.Log("Reloading");
     }
 
     protected void CreateSavestates()
     {
+        FixedVec3 t = new FixedVec3(transform.position.x, transform.position.y, transform.position.z);
+        playerPosTesting2._playerpos = t;
         Playerpositions.Add(playerPosTesting2);
-        testDatalist.Add(newtestdatata);
-
-
-        
+        testDatalist.Add(newtestdatata);        
         if (Playerpositions.Count >= frameDelay)
         {
-            netMove.ProcessPlayerMoevement(currentspeed, oldstatetestdata, playerPosTesting);
+            if (!testingsends)
+            {
+                netMove.ProcessPlayerMoevement(oldstatetestdata, playerPosTesting);
+            }
+            
             Playerpositions.RemoveAt(0);
             testDatalist.RemoveAt(0);          
         }        
@@ -256,18 +296,15 @@ public class Player : CahracterBase
     //void for reloading
     protected void Reloading()
     {
-        var t = new Vector2(0, 0);
-        var d = Direction.Idle;
-       
-
+        var t = new FixedVec2(0, 0);
+        var d = Direction.Idle;        
         oldstatetestdata._position = t;
         oldstatetestdata._direction = d;
         oldstatetestdata._playerstate = MovementState.Reloading;        
-        newtestdatata._position = t;
         oldstatetestdata._direction = d;
         for (int i = 0; i < testDatalist.Count; i++)
         {
-            TestData ts = testDatalist[i];
+            PlayerData ts = testDatalist[i];
            
             ts._playerstate = MovementState.Reloading;            
             ts._direction = d;
@@ -277,9 +314,8 @@ public class Player : CahracterBase
         oldstatetestdata = testDatalist[0];
         //Input.ResetInputAxes();
         Input.ClearLastPenContactEvent();
-        playerPosTesting._rotation = Vector2.zero;       
-        netMove.ProcessPlayerMoevement(currentspeed, oldstatetestdata, playerPosTesting);
-        Debug.Log("reloading has happened");
+        playerPosTesting._rotation = new FixedVec2(0,0);      
+       
     }
 
     public void StartReloading()
@@ -300,68 +336,18 @@ protected void PlayerMovementVoid()
         float xMove = Input.GetAxis("Horizontal");
         float yMove = Input.GetAxis("Vertical");
         var d = netMove.ProcessPlayerDirection(xMove,yMove);
+        var check = NetworkHelper.Vec2Creation(d);    
+       
 
-        TestData help = new TestData()
+        PlayerData help = new PlayerData()
         {
-            _position = new Vector2(xMove, yMove),
-            _direction = d,
-            _attacking = false,
+            _position = check,
+            _direction = d,           
             _id = tick,
-            _playerstate = playerState,
-           // _grounded = isGrounded,
+            _playerstate = playerState,           
         };
 
-        
-        if (tick >= 2)
-        {
-            if (!testingsends)
-            {
-               // oldstatetestdata = testDatalist[0];               
-                if (running)
-                {
-                    currentspeed = 2.0f;
-                }
-                else
-                {
-                    currentspeed = 5.0f;
-                }                
-                newtestdatata = help;                             
-            }
-
-        }
-        else if (tick == 1)
-        {            
-            newtestdatata = help;
-          //  testDatalist.Add(help);
-            Debug.Log("escape" + testDatalist.Count);
-         
-        }
-        else
-        {
-            newtestdatata = help;
-          
-         //   testDatalist.Add(help);
-            Debug.Log("escape" + testDatalist.Count);
-        }   
-
-       
-       
-
-
-       // GravityFunction();
-
-        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-        {
-            running = true;           
-        }
-        else
-        {
-            if (running != false)
-            {
-                running = false;
-            }
-            //Reset to normal speed
-        }
+        newtestdatata = help;
     }
 
     //void for player rotaion
@@ -370,11 +356,11 @@ protected void PlayerMovementVoid()
         //get the movements of the mouse
         float MouseX = Input.GetAxis("MouseX") * MouseSpeed * Time.deltaTime;
         float MouseY = Input.GetAxis("MouseY") * MouseSpeed * Time.deltaTime;
-
-        playerPosTesting2._rotation = new Vector2(MouseX,MouseY);     
+      //  Debug.Log("thisrotation" + MouseX + MouseY);
+        playerPosTesting2._rotation = new FixedVec2(MouseX,MouseY);     
     }
 
-    public void ProjectileSpawn()
+    public GameObject ProjectileSpawn()
     {
          GameObject bullet = Instantiate(projectile, gunpos.transform.position, transform.rotation);
          bullet.GetComponent<Rigidbody>().AddForce(bullet.transform.forward * ProjectileSpeed, ForceMode.Impulse);
@@ -390,14 +376,33 @@ protected void PlayerMovementVoid()
             }
         }
         AmmoCount--;
-        ammotext.ChangeText(AmmoCount);
+        ammotext.text = "Ammo Count: " + AmmoCount.ToString() + "/" + ammoMax.ToString();
         netMove.CanFireAgain();
+        return bullet;
     }
     public void PlayerDamaged()
     {
-        HealthPoint -= 20.0f;
-        healthbar.Testing(HealthPoint);
+        if (!noDamage)
+        {
+            HealthPoint -= 20.0f;
+            healthbar.Testing(HealthPoint);
+        }
+        
 
+    }
+
+    public void PlayerReset()
+    {
+        HealthPoint = 100.0f;
+        healthbar.Testing(HealthPoint);
+        healthtimer = 0;
+        AmmoCount = ammoMax;
+        ammotext.text = "Ammo Count: " + AmmoCount.ToString() + "/" + ammoMax.ToString();
+        ammotimer = 0;
+        playerState = MovementState.Moving;
+        alive = true;
+        noDamage = true;
+        damageTick = tick;
     }
 
     private void HealtingPLayer()

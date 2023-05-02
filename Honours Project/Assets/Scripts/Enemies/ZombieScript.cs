@@ -16,7 +16,8 @@ public class ZombieScript : CahracterBase
     private Dictionary<int, ZombieData> zomDic;     
     private Manager gm;
 
-   
+    [SerializeField]
+    AudioSource attackClip;
     //ticks system
     private int tick = 0;
     private int fistrtick = 0;
@@ -34,6 +35,8 @@ public class ZombieScript : CahracterBase
     [SerializeField]
     BoxCollider attackbox;
     private CapsuleCollider capCollider;
+    private bool runnerZombie = false;
+    public bool GetRunner { set { runnerZombie = value; } }
     // Start is called before the first frame update
     void Start()
     {
@@ -42,7 +45,15 @@ public class ZombieScript : CahracterBase
         gm = FindObjectOfType<Manager>();
         enemyState = Enemystate.Running;
         agent.destination = goalDestination.transform.position;
-        agent.speed = normMovementSpeed;
+        if (runnerZombie)
+        {
+            agent.speed = runningMovementSpeed;
+        }
+        else
+        {
+            agent.speed = normMovementSpeed;
+        }
+        
         hitBool = false;
         gameObject.GetComponent<Renderer>().material.color = Color.blue;
         NetworkMovementClass tes = FindObjectOfType<NetworkMovementClass>();
@@ -120,13 +131,11 @@ public class ZombieScript : CahracterBase
 
     public void FullReset()
     {
-        var t = 0;
-
         if (alive)
         {
             if (zomDic != null)
             {
-                t = ZombieHelper.GetKey(zomDic);
+                int t = ZombieHelper.GetKey(zomDic);
                 if (zomDic.ContainsKey(t))
                 {
                     var st = zomDic[t];
@@ -138,16 +147,12 @@ public class ZombieScript : CahracterBase
                         var test = tick - i;
                         if (zomDic.ContainsKey(test))
                         {
-                            Zombierollingbackstate(test);
+                            ZombieRollback(test);
                         }
                     }
                 }
             }
-        }
-        
-      
-        
-        Debug.Log("rolled back to the start");
+        }     
     }
 
 
@@ -155,68 +160,52 @@ public class ZombieScript : CahracterBase
     {
         if (alive)
         {
-            
+            bool testingbool = false;
             if (zomDic != null)
             {
                 int tickbetweeen = tick - ticks;
-                Debug.Log("this is just a test" + tickbetweeen);
-                bool testingbool = false;
+                Debug.Log("this is just a test" + tickbetweeen);               
                 //while the zombie is alive do a positional rollback
                 //if its dead just ignore as there is no point in it
                 if (zomDic.ContainsKey(ticks))
                 {
                     Debug.Log("Zombieposition" + transform.position);
-                    testingbool = GetRollState(ticks);
+                    testingbool = true;
                     Debug.Log("zombie has this value" + transform.position);
                 }
-                if (!testingbool || (testingbool && tickbetweeen <= 2))
+                if (testingbool)
                 {
-                    for (int i = tickbetweeen; i > 0; i--)
+                    for (int i = tickbetweeen; i>0;i--)
                     {
-                        var t = tick - i;
-                        t++;
-                        Debug.Log("what happened" + t);
+                        var ts = tick - i;
 
-                        Zombierollingbackstate(t);
+                        if (zomDic.ContainsKey(ts))
+                        {
+                           GetRollState(ts);
+                        }
                     }
                 }
-                else
-                {                  
-                        //movement 
-                        for (int i = tickbetweeen; i > 0; i--)
-                        {
-                            var t = tick - i;
-                            t++;
-                            MovementStateRoll(t);
-                        }
-                    
-
-                }
             }
-        }      
-       
+        }
+
     }
 
-    private bool GetRollState(int t)
-    {
-        var b = false;
-
+    private void GetRollState(int t)
+    {    
         ammotimer = zomDic[t]._timer;
         transform.position = zomDic[t]._position;
         agent.speed = zomDic[t]._speed;
         if (enemyState != zomDic[t]._enemystate)
         {
-            enemyState = zomDic[t]._enemystate;
-            b = true;
-        }
-        if (b)
-        {
-            Debug.Log("Whelp the states are not the same");
-        }
+            if (enemyState != Enemystate.Attacking)
+            { 
+                 enemyState = zomDic[t]._enemystate;           
+            }           
+        }        
         agent.destination = goalDestination.transform.position;
-        return b;     
+        ZombieRollback(t);
     }
-    private void Zombierollingbackstate(int t)
+    private void ZombieRollback(int t)
     {
         if (enemyState == Enemystate.Running)
         {
@@ -230,28 +219,15 @@ public class ZombieScript : CahracterBase
             }
         }
         
-    }
+    }    
     
-    private void MovementStateRoll(int t)
-    {
-        if (zomDic.ContainsKey(t))
-        {
-            if (zomDic[t]._enemystate == Enemystate.Running)
-            {
-                ZombieMovement();               
-                var dic = zomDic[t];
-                dic._position = transform.position;
-                zomDic[t] = dic;
-            }           
-        }
-    }
     private void ZombieMovement()
     {
         if (goalDestination != null)
         {
             if (!agent.isStopped)
             {
-                if (hitBool)
+                if (hitBool || runnerZombie)
                 {
                     transform.position = Vector3.MoveTowards(transform.position, goalDestination.transform.position, runningMovementSpeed * Time.deltaTime);
                 }
@@ -302,13 +278,19 @@ public class ZombieScript : CahracterBase
                 ammotimer = 0.0f;
                 if (goalDestination)
                 {
-                    goalDestination.GetComponent<Player>().PlayerDamaged();
+                    if (!goalDestination.GetComponent<Player>().GetDamage)
+                    {
+                        goalDestination.GetComponent<Player>().PlayerDamaged();
+                    }
+                   
                 }
                 if (agent.isActiveAndEnabled)
                 {
                     agent.velocity = Vector3.zero;
                     agent.isStopped = true;
                 }
+
+                attackClip.Play();
             }
         }
        
@@ -362,6 +344,8 @@ public class ZombieScript : CahracterBase
     public void HpDecrease()
     {
         HealthPoint -= 25.0f;
+        var t = gm.SetZombHit + 1;
+        gm.SetZombHit = t ;
     }
 
     private void RunState()

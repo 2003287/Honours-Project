@@ -6,6 +6,10 @@ using UnityEngine;
 
 namespace GameMovement.Network
 {
+    ///https://github.com/zacpeelyates/unityrollback
+     //implementation of rollback taking GGPO and implementing it in C#
+    //Github Inc 2022 HouraiTeahouse Backroll(2021) available at: https://github.com/HouraiTeahouse/Backroll
+    //(Accessed: 28 Novemeber 2022)
     public class NetworkMovementClass : NetworkBehaviour
     {
         [SerializeField]
@@ -13,14 +17,15 @@ namespace GameMovement.Network
         CharacterController PLayerMovement;
         private const int Buffer_size = 16;
 
-
+        [SerializeField]
+        Player player;
         //tickrate /// for id of each msg 
         private int tick = 0;
         private float tickRate = 1.0f / 60.0f;
         private float tickDeltaTime = 0f;
-
+        private float speed = 5.0f;
         //helperfunctions
-        Vector2 rotation;
+        FixedVec2 rotation;
 
         //velocity
         Vector3 velocity;
@@ -31,8 +36,8 @@ namespace GameMovement.Network
         //used by the network
        // public NetworkVariable<TestData> ServermovemntState = new NetworkVariable<TestData>();
         //the last state
-        public TestData oldMovementState;
-        private Dictionary<int, TestData> gameStatesDic;
+        public PlayerData oldMovementState;
+        private Dictionary<int, PlayerData> gameStatesDic;
 
         //how may frames the project will need to rollback
         private static uint rollback = 0;
@@ -40,22 +45,22 @@ namespace GameMovement.Network
         Playpostest PlayerPositionTest;
         //camera
         new private Camera camera;
-        private float oldFloat;
+        private int deadtick = 0;
+        private bool playerDead = false;
         private bool firing;
         private void OnEnable()
         {
            
-            gameStatesDic = new Dictionary<int, TestData>();
-            oldMovementState = new TestData()
+            gameStatesDic = new Dictionary<int, PlayerData>();
+            oldMovementState = new PlayerData()
             {
-                _position = new Vector2(0.0f, 0.0f),
-                _direction = Direction.Idle,
-                _attacking = false,
+                _position = new FixedVec2(0, 0),
+                _direction = Direction.Idle,               
                 _id = 0,
                 _playerstate = MovementState.Moving,
                
             };
-            rotation = new Vector2(0.0f,0.0f);
+            rotation = new FixedVec2(0.0f,0.0f);
            
         }
 
@@ -69,26 +74,25 @@ namespace GameMovement.Network
         {
             tick = 0;
             camera = GameObject.FindGameObjectWithTag("Camera").GetComponent<Camera>();
+            
             firing = false;
             gameManager = FindObjectOfType<Manager>();
-            oldMovementState = new TestData()
+            oldMovementState = new PlayerData()
             {
-                _position = new Vector2(0.0f, 0.0f),
-                _direction = Direction.Idle,
-                _attacking = false,
+                _position = new FixedVec2(0, 0),
+                _direction = Direction.Idle,                
                 _id = 0,
                 _playerstate = MovementState.Moving,
 
             };
-            rotation = new Vector2(0.0f, 0.0f);
+            rotation = new FixedVec2(0.0f, 0.0f);
         }
         //Update to control movement
 
         public void PLsDestroy()
         {
             gameStatesDic.Clear();
-            gameManager.Deload();
-           
+            gameManager.Deload();          
 
         }
         void Update()
@@ -100,19 +104,50 @@ namespace GameMovement.Network
             {
                 if (IsServer)
                 {
-                    if (rollback <= 0)
+                    if (!playerDead)
                     {
-                        var move = Moveplayer(5.0f, oldMovementState);
+                        if (rollback <= 0)
+                        {
+                            Moveplayer( oldMovementState);
 
-                        SavePredictedGamestate(tick);
+                            SavePredictedGamestate(tick);
+                        }
+                        else
+                        {
+                            Rollback();
+                            //Debug.Log("testing rollback has happened");
+                            SavePredictedGamestate(tick);
+                        }
                     }
                     else
                     {
-                        Rollback();
-                        Debug.Log("testing rollback has happened");
+                        var deadcheck = deadtick + 12;
+                        if (deadcheck < tick)
+                        {
+                            playerDead = false;
+                        }
+                        SavePredictedGamestate(tick);
                     }
+                    
 
-                  
+                    if (player != null)
+                    {
+                        if (!player.GetAlive)
+                        {
+                            var ts = gameManager.GetSpawnPosition();
+                            PLayerMovement.enabled = false;
+                            PLayerMovement.transform.position = ts;
+                            PLayerMovement.enabled = true;
+                            player.PlayerReset();
+                            playerDead = true;
+                            deadtick = tick;
+                        }
+                    }
+                    else
+                    {
+                        player = FindObjectOfType<Player>();
+                    }
+                    
                     //reset tick and add on
                     tickDeltaTime -= tickRate;
                     tick++;
@@ -128,11 +163,10 @@ namespace GameMovement.Network
       
 
         
-        private Vector3 Moveplayer(float speed, TestData test)
-        {
-            // Vector2 tes = Vec2Creation(test._direction);
-           // Debug.Log("test pos" + test._position);
-            Vector3 movement = camera.transform.right * test._position.x + camera.transform.forward * test._position.y;
+        private Vector3 Moveplayer( PlayerData test)
+        {         
+           // Vector3 movement = camera.transform.right * (float)test._position.xpos + camera.transform.forward * (float)test._position.ypos;
+            Vector3 movement = NetworkHelper.CameraMovement(camera.transform.right,camera.transform.forward,test._position);
             PLayerMovement.Move(movement * speed * Time.deltaTime);
             if (velocity.y < 0 && PlayerPositionTest._grounded)
             {
@@ -142,35 +176,27 @@ namespace GameMovement.Network
             
             velocity.y -= 9.81f * 2.0f * Time.deltaTime;
             PLayerMovement.Move(velocity * Time.deltaTime);
-            RotationMovement();
+            if (test._playerstate != MovementState.Reloading)
+            {
+                RotationMovement();
+            }
+            
             return movement;
         }
 
         private void RotationMovement()
         {
             rotation = NetworkHelper.PlayerRotationVoid(rotation,PlayerPositionTest._rotation);
-            PLayerMovement.transform.localRotation = Quaternion.Euler(rotation.x, rotation.y, 0f);
+            PLayerMovement.transform.localRotation = Quaternion.Euler((float)rotation.xpos, (float)rotation.ypos, 0f);
         }
 
-        private void SaveState(TestData test,  int buffer)
+        private void SaveState(PlayerData test,  int buffer)
         {
-            Vector2 tes = NetworkHelper.Vec2Creation(test._direction);
-        
-            test._position = tes;
-            TestData newstate = new TestData()
-            {
-                _position = tes,
-                _direction = test._direction,
-                _attacking = false,
-                _id = buffer,
-                _playerstate = test._playerstate
-               
-            };
-            //add to the array
-           
+            
+            //check the array           
             if (gameStatesDic.ContainsKey(test._id))
             {
-                TestData testingdat = gameStatesDic[test._id];
+                PlayerData testingdat = gameStatesDic[test._id];
                 if (!test.Equals(testingdat))
                 {
                     rollback = (uint)(tick - test._id);
@@ -187,17 +213,17 @@ namespace GameMovement.Network
         private void Rollback()
         {
             gameManager.JustATest(tick - (int)rollback);
+            PLayerMovement.enabled = false;
+            PLayerMovement.transform.position = NetworkHelper.FixToVec3(PlayerPositionTest._playerpos);
+            PLayerMovement.enabled = true;
             if (oldMovementState._playerstate == MovementState.Moving)
             {
-                Debug.Log("new position check" + PLayerMovement.transform.position);
-                PLayerMovement.enabled = false;
-                PLayerMovement.transform.position = PlayerPositionTest._playerpos;
-                PLayerMovement.enabled = true;
+              
                 for (int i = (int)rollback; i > 0; i--)
                 {
                     var t = tick - i;
 
-                    var move = Moveplayer(5.0f, oldMovementState);
+                    Moveplayer( oldMovementState);
                     Debug.Log("direction" + oldMovementState._direction);
                     Debug.Log("new position check" + PLayerMovement.transform.position);
                     //save the new prediction
@@ -216,10 +242,10 @@ namespace GameMovement.Network
             }
             else if (oldMovementState._playerstate == MovementState.Reloading)
             {
-                Debug.Log("new position checkReload" +oldMovementState._direction);
-                PLayerMovement.enabled = false;
-                PLayerMovement.transform.position = PlayerPositionTest._playerpos;
-                PLayerMovement.enabled = true;
+               
+               
+                //oldMovementState._position = new FixedVec2(0, 0);
+                //oldMovementState._direction = Direction.Idle;
                 for (int i = (int)rollback; i > 0; i--)
                 {
                     var t = tick - i;                          
@@ -228,27 +254,20 @@ namespace GameMovement.Network
                 }
             }
             else if (oldMovementState._playerstate == MovementState.jumping)
-            {
-               // Debug.Log("jumping has happened");
-                
-               velocity = NetworkHelper.Jumping(velocity);
-                //Debug.Log("afterjump" +velocity);
-                PLayerMovement.enabled = false;
-                PLayerMovement.transform.position = PlayerPositionTest._playerpos;
-                PLayerMovement.enabled = true;
+            {                              
+               
                 for (int i = (int)rollback; i > 0; i--)
                 {
                     var t = tick - i;
 
-                    var move = Moveplayer(5.0f, oldMovementState);                  
+                    Moveplayer( oldMovementState);                  
                     SavePredictedGamestate(t);
                 }
                 gameManager.PLayerJumping();
             }
             //apply the movement here
-            //create a list or something else
-            Debug.Log("rollback has happened");
-                rollback = 0;
+            //create a list or something else          
+            rollback = 0;
         }
 
         public void CanFireAgain()
@@ -260,19 +279,11 @@ namespace GameMovement.Network
             }
         }
         private void SavePredictedGamestate(int t)
-        {
-            TestData newstate = new TestData()
-            {
-                _position = oldMovementState._position,
-                _direction = oldMovementState._direction,
-                _attacking = false,
-                _id = t,         
-                _playerstate = oldMovementState._playerstate,
-            };
-
-            gameStatesDic[t] = newstate;
+        {           
+            oldMovementState._id = t;
+            gameStatesDic[t] = oldMovementState;
         }
-        public void ProcessPlayerMoevement(float speed, TestData test, Playpostest play)
+        public void ProcessPlayerMoevement( PlayerData test, Playpostest play)
         {              
                 if (IsServer)
                 {                       
@@ -287,6 +298,7 @@ namespace GameMovement.Network
             return tick;
         }
         
+        //taken from here
         public Direction ProcessPlayerDirection(float xpos, float ypos)
         {
             var xmove = NetworkHelper.Testing(xpos);

@@ -34,6 +34,7 @@ public class BulletScript : MonoBehaviour
     private Collider mycollider;
     private Rigidbody rb;
     private int hittype = 0;
+    private Manager gm;
     void Start()
     {
         alive = true;
@@ -44,6 +45,7 @@ public class BulletScript : MonoBehaviour
         mesh = gameObject.GetComponent<MeshRenderer>();
         mycollider = GetComponent<SphereCollider>();
         rb = GetComponent<Rigidbody>();
+        gm = FindObjectOfType<Manager>();
     }
 
     // Update is called once per frame
@@ -76,6 +78,7 @@ public class BulletScript : MonoBehaviour
                 if (deadTick < test)
                 {
                     Debug.Log("bullet is dead and destroyed");
+                    gm.BulletRemove(this.gameObject, hittype);
                     Destroy(this.gameObject);
                    
                 }
@@ -139,6 +142,7 @@ public class BulletScript : MonoBehaviour
             }
             else
             {
+                Debug.Log("on screen do something");
                 //just do a rollback as nothing will change
                 if (alive == bState._onscreen)
                 {
@@ -175,6 +179,7 @@ public class BulletScript : MonoBehaviour
             if (bulletDictionary.ContainsKey(i))
             {
                 transform.position = bulletDictionary[i]._position;
+                timer = bulletDictionary[i]._timer;
             }
         }
     }

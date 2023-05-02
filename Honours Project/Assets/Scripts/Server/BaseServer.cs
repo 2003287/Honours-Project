@@ -24,8 +24,12 @@ public class BaseServer : NetworkManager
           //  netm.HelpMe();
         }
         else
-        {            
-            Application.targetFrameRate = 60;
+        {          
+            if (Application.targetFrameRate != 60)
+            {
+                Application.targetFrameRate = 60;
+            }
+           
             var testing = NetworkManager.Singleton.StartHost();
 
             if (testing)
