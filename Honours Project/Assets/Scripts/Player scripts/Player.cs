@@ -427,9 +427,11 @@ protected void PlayerMovementVoid()
         {
           playerPosTesting2._grounded =  false;
         }
+        
         //when jumping change the state to jumping
         if (Input.GetButtonDown("Jump") && isGrounded)
-        {                     
+        {
+            Debug.Log("JUmpig is pressed");
              jumped = true;
         }
      

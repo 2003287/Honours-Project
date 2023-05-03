@@ -254,7 +254,8 @@ namespace GameMovement.Network
                 }
             }
             else if (oldMovementState._playerstate == MovementState.jumping)
-            {                              
+            {
+               velocity = NetworkHelper.Jumping(velocity);
                
                 for (int i = (int)rollback; i > 0; i--)
                 {
@@ -263,6 +264,7 @@ namespace GameMovement.Network
                     Moveplayer( oldMovementState);                  
                     SavePredictedGamestate(t);
                 }
+                Debug.Log("Jumpig2");
                 gameManager.PLayerJumping();
             }
             //apply the movement here
