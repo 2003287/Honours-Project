@@ -80,6 +80,7 @@ public class Manager : MonoBehaviour
     // the delay encountered in the scene
     [SerializeField]
     int framedelay;
+    public int GetFrameDelay => framedelay;
     //addition of randomised delay
     [SerializeField]
     bool artDelay;
@@ -254,14 +255,8 @@ public class Manager : MonoBehaviour
                         if (item != null)
                         {
                             item.GetComponent<ZombieScript>().ResetPosition(ticks);
-                        }
-                       
-                    }
-                    else
-                    {
-                        Debug.Log("There is a zombie on the loose");
-                    }
-                   // 
+                        }                       
+                    }                             
                 }
             }
             else
@@ -301,17 +296,13 @@ public class Manager : MonoBehaviour
             }
             //bullets
             
-        }
-        else
-        {
-            Debug.Log("there is something out of sync with the comparor fix it");
-        }
+        }       
         Debug.Log("max zombies" +maxZombies);
         Debug.Log("total kills" +totalKilledZombs);
     }
     public void TestingSwan()
     {
-        var t = player.ProjectileSpawn();
+        var t = player.ProjectileSpawn();      
         bulletsSpawned++;
         bulletList.Add(t);
         var forward = t.transform.position + (t.transform.forward * 5);

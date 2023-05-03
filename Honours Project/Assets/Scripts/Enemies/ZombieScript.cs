@@ -11,8 +11,10 @@ public class ZombieScript : CahracterBase
     private Enemystate enemyState;
     private NavMeshAgent agent;
     private bool hitBool;
-   
-
+    [SerializeField]
+    AudioSource distanceGrowl;
+    float growlTimer;
+    private float distance;
     private Dictionary<int, ZombieData> zomDic;     
     private Manager gm;
 
@@ -36,6 +38,7 @@ public class ZombieScript : CahracterBase
     BoxCollider attackbox;
     private CapsuleCollider capCollider;
     private bool runnerZombie = false;
+
     public bool GetRunner { set { runnerZombie = value; } }
     // Start is called before the first frame update
     void Start()
@@ -63,7 +66,8 @@ public class ZombieScript : CahracterBase
         alive = true;
         couldAttack = false;
         mesh = gameObject.GetComponent<MeshRenderer>();
-        capCollider = gameObject.GetComponent<CapsuleCollider>();   
+        capCollider = gameObject.GetComponent<CapsuleCollider>();
+        growlTimer = 0;
     }
     // Update is called once per frame
     void Update()
@@ -79,7 +83,7 @@ public class ZombieScript : CahracterBase
                     SwitchEnemyState();
                     ZombiePositionUpdate();
                 }
-               
+
                 if (HealthPoint <= 0)
                 {
                     deadTick = tick;
@@ -101,15 +105,34 @@ public class ZombieScript : CahracterBase
                         gm.RemoveFromList(this.gameObject);
                         Destroy(this.gameObject);
                     }
-                }              
+                }
             }
-            
+            if (goalDestination != null)
+            {
+                distance = Vector3.Distance(transform.position, goalDestination.transform.position);
+                DistanceNoise();
+            }
+           
             tick++;
             tickDeltaTime -= tickRate;
             if (zomDic.Count >= 16)
             {
                 int re = tick - 16;
                 zomDic.Remove(re);
+            }
+        }
+    }
+
+    private void DistanceNoise()
+    {
+        if (distance <= 100)
+        {
+            Debug.Log("distance" + name);
+            growlTimer += Time.deltaTime;
+            if (growlTimer >= 8.0)
+            {
+                growlTimer = 0;
+                distanceGrowl.Play();
             }
         }
     }

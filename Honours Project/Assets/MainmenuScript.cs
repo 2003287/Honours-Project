@@ -12,6 +12,7 @@ public class MainmenuScript : MonoBehaviour
     List<TMP_Text> score;
     [SerializeField]
     List<TMP_Text> accuracy;
+    private float timer;
     private void Start()
     {
         Cursor.lockState = CursorLockMode.None;
@@ -37,14 +38,22 @@ public class MainmenuScript : MonoBehaviour
             
             accuracy[2].text = "Accuracy in level 3: " + DataStorage.accuracy3.ToString() + "%";
         }
-
+        timer = 0;
         Debug.Log("level completesapwn");
 
     }
-
+    private void Update()
+    {
+        timer += Time.deltaTime;
+        
+    }
     public void loadScene(string screenName)
     {
-        SceneManager.LoadScene(screenName);
+        if (timer >= 2)
+        {
+            SceneManager.LoadScene(screenName);
+        }
+        
 
        
            

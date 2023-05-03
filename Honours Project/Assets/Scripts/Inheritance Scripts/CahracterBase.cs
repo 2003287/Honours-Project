@@ -268,7 +268,7 @@ public class CahracterBase : NetworkBehaviour
 {
     //speed the character moves at
     [SerializeField]
-    protected float normMovementSpeed = 1.0f;
+    protected float normMovementSpeed = 2.0f;
 
     //speed character runs at
     [SerializeField]

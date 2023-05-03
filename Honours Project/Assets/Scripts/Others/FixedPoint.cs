@@ -437,6 +437,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         {
             return x.m_rawValue < y.m_rawValue;
         }
+        public static bool operator >(Fix64 x, int y)
+        {
+            return x.m_rawValue < y;
+        }
+        public static bool operator <(Fix64 x, int y)
+        {
+            return x.m_rawValue < y;
+        }
 
         public static bool operator >=(Fix64 x, Fix64 y)
         {

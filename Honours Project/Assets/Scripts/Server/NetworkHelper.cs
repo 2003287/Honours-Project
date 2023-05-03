@@ -90,9 +90,14 @@ public static class NetworkHelper
 
     public static Vector3 Jumping(Vector3 jumping)
     {
-        Debug.Log(jumping);
+       // Debug.Log(jumping);
         jumping.y += 2.0f * 5.0f;
-        Debug.Log(jumping);
+       // Debug.Log(jumping);
+        return jumping;
+    }
+    public static FixedVec3 JumpingFix(FixedVec3 jumping,float height)
+    {
+        jumping.yfix += (Fix64)height;         
         return jumping;
     }
 

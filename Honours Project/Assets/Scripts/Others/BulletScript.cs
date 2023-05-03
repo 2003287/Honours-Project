@@ -35,6 +35,9 @@ public class BulletScript : MonoBehaviour
     private Rigidbody rb;
     private int hittype = 0;
     private Manager gm;
+    private Vector3 spawnvelocity;
+    private bool speedUp = true;
+
     void Start()
     {
         alive = true;
@@ -45,7 +48,7 @@ public class BulletScript : MonoBehaviour
         mesh = gameObject.GetComponent<MeshRenderer>();
         mycollider = GetComponent<SphereCollider>();
         rb = GetComponent<Rigidbody>();
-        gm = FindObjectOfType<Manager>();
+        gm = FindObjectOfType<Manager>();        
     }
 
     // Update is called once per frame
@@ -84,6 +87,15 @@ public class BulletScript : MonoBehaviour
                 }
                 
             }
+            if (speedUp && tick == fistrtick)
+            {
+               // rb.velocity = Vector3.forward;
+                speedUp = false;
+                var player = FindObjectOfType<Player>();
+                var dist = player.transform.position + player.transform.forward * gm.GetFrameDelay / 10;
+                transform.position = Vector3.MoveTowards(transform.position, dist, gm.GetFrameDelay / 10);
+                Debug.Log("bulletspeed" + rb.velocity);
+            }          
 
             //create bulletstate
             CreateBulletState();
@@ -128,6 +140,7 @@ public class BulletScript : MonoBehaviour
         hittype = t;
     }
 
+    
     public void BulletRollback(int ticks)
     {
         if (bulletDictionary.ContainsKey(ticks))

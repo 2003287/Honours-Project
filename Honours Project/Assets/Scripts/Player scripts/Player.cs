@@ -209,8 +209,8 @@ public class Player : CahracterBase
 
                 CreateSavestates();
                
-
-                if (Input.GetKeyDown(KeyCode.H))
+                //for debuging purposes
+              /*  if (Input.GetKeyDown(KeyCode.H))
                 {
                     Debug.Log("the H was presed");
                     camera.transform.SetParent(null);
@@ -220,7 +220,7 @@ public class Player : CahracterBase
                     }
                     
                     Destroy(this);
-                }
+                }*/
 
             }
 
@@ -362,8 +362,8 @@ protected void PlayerMovementVoid()
 
     public GameObject ProjectileSpawn()
     {
-         GameObject bullet = Instantiate(projectile, gunpos.transform.position, transform.rotation);
-         bullet.GetComponent<Rigidbody>().AddForce(bullet.transform.forward * ProjectileSpeed, ForceMode.Impulse);
+        GameObject bullet = Instantiate(projectile, gunpos.transform.position, transform.rotation);
+        bullet.GetComponent<Rigidbody>().AddForce(bullet.transform.forward * ProjectileSpeed, ForceMode.Impulse);        
         playerState = MovementState.Moving;
         oldstatetestdata._playerstate = MovementState.Moving;        
         for(int i = 0; i<testDatalist.Count;i++)
@@ -431,7 +431,7 @@ protected void PlayerMovementVoid()
         //when jumping change the state to jumping
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            Debug.Log("JUmpig is pressed");
+            
              jumped = true;
         }
      

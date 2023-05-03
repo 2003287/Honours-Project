@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using FixMath.NET;
 using UnityEngine;
 
 
@@ -29,6 +30,7 @@ namespace GameMovement.Network
 
         //velocity
         Vector3 velocity;
+        FixedVec3 jumpvelocity;
 
         //manager
         Manager gameManager;
@@ -86,6 +88,7 @@ namespace GameMovement.Network
 
             };
             rotation = new FixedVec2(0.0f, 0.0f);
+            jumpvelocity = new FixedVec3(0,0,0);
         }
         //Update to control movement
 
@@ -172,10 +175,17 @@ namespace GameMovement.Network
             {
                 velocity.y = -1.0f;                
             }
+            if (jumpvelocity.yfix < 0 && PlayerPositionTest._grounded)
+            {
+                jumpvelocity.yfix = (Fix64)(-1);
+            }
 
-            
             velocity.y -= 9.81f * 2.0f * Time.deltaTime;
-            PLayerMovement.Move(velocity * Time.deltaTime);
+            jumpvelocity.yfix -= (Fix64)(9.81*2.0* Time.deltaTime);
+
+            var jump = new Vector3(0,(float)jumpvelocity.yfix,0);
+           // PLayerMovement.Move(velocity * Time.deltaTime);
+            PLayerMovement.Move(jump * Time.deltaTime);
             if (test._playerstate != MovementState.Reloading)
             {
                 RotationMovement();
@@ -213,12 +223,12 @@ namespace GameMovement.Network
         private void Rollback()
         {
             gameManager.JustATest(tick - (int)rollback);
-            PLayerMovement.enabled = false;
-            PLayerMovement.transform.position = NetworkHelper.FixToVec3(PlayerPositionTest._playerpos);
-            PLayerMovement.enabled = true;
+            
             if (oldMovementState._playerstate == MovementState.Moving)
             {
-              
+                PLayerMovement.enabled = false;
+                PLayerMovement.transform.position = NetworkHelper.FixToVec3(PlayerPositionTest._playerpos);
+                PLayerMovement.enabled = true;
                 for (int i = (int)rollback; i > 0; i--)
                 {
                     var t = tick - i;
@@ -232,18 +242,22 @@ namespace GameMovement.Network
             }
             else if (oldMovementState._playerstate == MovementState.Attacking)
             {
+                
+               
                 Debug.Log("Im firing out a bullet");
                 if (!firing)
                 {
                     firing = true;
                     gameManager.TestingSwan();                   
                 }
-                
+               
             }
             else if (oldMovementState._playerstate == MovementState.Reloading)
             {
-               
-               
+                PLayerMovement.enabled = false;
+                PLayerMovement.transform.position = NetworkHelper.FixToVec3(PlayerPositionTest._playerpos);
+                PLayerMovement.enabled = true;
+
                 //oldMovementState._position = new FixedVec2(0, 0);
                 //oldMovementState._direction = Direction.Idle;
                 for (int i = (int)rollback; i > 0; i--)
@@ -255,8 +269,11 @@ namespace GameMovement.Network
             }
             else if (oldMovementState._playerstate == MovementState.jumping)
             {
-               velocity = NetworkHelper.Jumping(velocity);
-               
+                PLayerMovement.enabled = false;
+                PLayerMovement.transform.position = NetworkHelper.FixToVec3(PlayerPositionTest._playerpos);
+                PLayerMovement.enabled = true;
+                velocity = NetworkHelper.Jumping(velocity);
+                jumpvelocity = NetworkHelper.JumpingFix(jumpvelocity,10);
                 for (int i = (int)rollback; i > 0; i--)
                 {
                     var t = tick - i;
@@ -264,7 +281,6 @@ namespace GameMovement.Network
                     Moveplayer( oldMovementState);                  
                     SavePredictedGamestate(t);
                 }
-                Debug.Log("Jumpig2");
                 gameManager.PLayerJumping();
             }
             //apply the movement here
