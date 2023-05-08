@@ -257,7 +257,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2922873713335827641}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 27.4, y: 11.48, z: -24.99}
+  m_LocalPosition: {x: 27.4, y: 20.48, z: -24.99}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -306,6 +306,7 @@ MonoBehaviour:
   gunpos: {fileID: 2922873713066719107}
   PLayer: {fileID: 2922873713335827647}
   MouseSpeed: 200
+  spawnPosition: {x: 27.4, y: 20.48, z: -24.98}
   PLayerMovement: {fileID: 2922873713335827645}
   netMove: {fileID: 7554572991560248568}
   velocity: {x: 0, y: 0, z: 0}
@@ -362,6 +363,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PLayerMovement: {fileID: 2922873713335827645}
+  player: {fileID: 0}
 --- !u!1 &3343585725448498777
 GameObject:
   m_ObjectHideFlags: 0

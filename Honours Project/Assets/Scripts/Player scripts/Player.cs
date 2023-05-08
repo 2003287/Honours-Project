@@ -20,6 +20,10 @@ public class Player : CahracterBase
     [SerializeField]
     float MouseSpeed = 50.0f;
 
+    //start position
+    [SerializeField]
+    Vector3 spawnPosition;
+
     [SerializeField]
     //character controller
     CharacterController PLayerMovement;
@@ -52,6 +56,10 @@ public class Player : CahracterBase
     private bool isGrounded = false;
 
     private bool jumped = false;
+
+
+    //private jump timer due to bug that i cannot replicate, no idea what happened or why just adding this in incase
+    private float touchGroundTimer = 0.0f;
     //ground position
     [SerializeField]
     Transform groundPos;
@@ -97,6 +105,7 @@ public class Player : CahracterBase
         //locks cursor will be used in final but not currently
         Cursor.lockState = CursorLockMode.Locked;
         Playerpositions = new List<Playpostest>();
+
         reloading = false;
         camera = GameObject.FindGameObjectWithTag("Camera").GetComponent<Camera>();
         if (camera)
@@ -113,6 +122,9 @@ public class Player : CahracterBase
         var gm = GameObject.FindGameObjectWithTag("Ammo");
         ammotext = gm.GetComponent<TMP_Text>();
         ammotext.text = "Ammo Count: " + AmmoCount.ToString()+ "/"+ ammoMax.ToString();
+        PLayerMovement.enabled = false;
+        PLayerMovement.transform.position = spawnPosition;
+        PLayerMovement.enabled = true;
     }
     // Update is called once per frame
     void Update()
@@ -208,7 +220,7 @@ public class Player : CahracterBase
                 
 
                 CreateSavestates();
-               
+                
                 //for debuging purposes
               /*  if (Input.GetKeyDown(KeyCode.H))
                 {
@@ -422,10 +434,20 @@ protected void PlayerMovementVoid()
         if (isGrounded && playerState != MovementState.jumping)
         {
             playerPosTesting2._grounded = true;
+            touchGroundTimer = 0;
         }
         else
         {
           playerPosTesting2._grounded =  false;
+            touchGroundTimer += Time.deltaTime;
+            if (touchGroundTimer >= 4.0f)
+            {
+                PLayerMovement.enabled = false;
+                PLayerMovement.transform.position = spawnPosition;
+                PLayerMovement.enabled = true;
+                touchGroundTimer = 0;
+            }
+
         }
         
         //when jumping change the state to jumping
