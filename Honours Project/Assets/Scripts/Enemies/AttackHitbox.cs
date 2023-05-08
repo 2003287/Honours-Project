@@ -4,23 +4,28 @@ using UnityEngine;
 
 public class AttackHitbox : MonoBehaviour
 {
-    //make it frame accurate but this is done 
-    //testing int
+ 
+    //number of ticks the collision box is touching the player
     private int tick = 0;
+    //bools to update collision
     private bool attack = false;
     private bool sendHit = false;
+    //gather the parent of the object
     ZombieScript parent;
-    // Start is called before the first frame update
+    
     void Start()
     {
+        //create the parent for the collision box
         parent = gameObject.GetComponentInParent<ZombieScript>();
     }
 
     // Update is called once per frame
     void Update()
     {
+        //while colliding update teh tick
         if (attack)
         {
+            //after 16 frames update the parent so the player has been hit
             if (tick >= 16 && !sendHit)
             {
                 Attacking();
@@ -28,6 +33,8 @@ public class AttackHitbox : MonoBehaviour
 
             Debug.Log("the enemy is attacking" + tick);
             tick++;
+            //after 24 frames update to signify the player can be hit again
+            //done due to error that froze the enemy after Rollback  
             if (tick >= 24)
             {
                 sendHit = false;
@@ -40,6 +47,8 @@ public class AttackHitbox : MonoBehaviour
             }
         }
     }
+
+    //when the player enters the collision box start the check for collision
     private void OnTriggerEnter(Collider other)
     {
         if (other != null)
@@ -55,6 +64,7 @@ public class AttackHitbox : MonoBehaviour
             
         }
     }
+    //when the player exits the collision box reset collision varibles
     private void OnTriggerExit(Collider other)
     {
         if (other.gameObject.tag == "Player")
@@ -69,6 +79,7 @@ public class AttackHitbox : MonoBehaviour
         }
     }
 
+    //update the parent as they might be able to attack
     private void SetAttacking()
     {       
         if (parent != null)
@@ -79,7 +90,7 @@ public class AttackHitbox : MonoBehaviour
             }
         }
     }
-
+    //update the parent as they are attacking the player
     private void Attacking()
     {       
         if (parent != null)

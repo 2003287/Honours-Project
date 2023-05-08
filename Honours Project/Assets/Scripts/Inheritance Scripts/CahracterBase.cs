@@ -6,6 +6,11 @@ using UnityEngine;
 
 namespace GameMovement.Network
 {
+
+    //Unity, 2023, Custom Serialization,
+    //Available at https://docs-multiplayer.unity3d.com/netcode/current/advanced-topics/custom-serialization
+    //Accessed on: (29 March 2023)
+    //makes Fixed points seralisable across the network
     public static class SerializationFix64
     {
         public static void ReadValueSafe(this FastBufferReader reader, out Fix64 url)
@@ -19,6 +24,7 @@ namespace GameMovement.Network
             writer.WriteValueSafe(url.RawValue);
         }
     }
+    //makes allowances to make the Fixed Vector 2 seralisable
     public static class SerializationVec264
     {
         public static void ReadValueSafe(this FastBufferReader reader, out FixedVec2 url)
@@ -33,6 +39,7 @@ namespace GameMovement.Network
         }
     }
 
+    //makes allowances to make the Fixed Vector 3 seralisable across the network
     public static class SerializationVec364
     {
         public static void ReadValueSafe(this FastBufferReader reader, out FixedVec3 url)
@@ -55,7 +62,7 @@ namespace GameMovement.Network
         public FixedVec2 _rotation;
         //is player Grounded
         public bool _grounded;
-        
+        //makes tehm seralisable
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             if (serializer.IsReader)
@@ -80,13 +87,19 @@ namespace GameMovement.Network
     //Zombie Rollback Container
     public struct ZombieData : INetworkSerializable
     {
-
+        //the sate of the enemy
        public Enemystate _enemystate;
+        //position of the zombie, used internally so floats are detministic
        public  Vector3 _position;
+        //the tick identifier
        public int _id;
+        //speed teh zombie is treaveling at
        public float _speed;
+        //timer incase paused or waiting
         public float _timer;
+        //zombie is alive 
         public bool _alive;
+        //makes them seralisable
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             if (serializer.IsReader)
@@ -119,6 +132,7 @@ namespace GameMovement.Network
     //zombie Enum
     public enum Enemystate { Attacking, Running, Paused };
 
+    //packet for teh player 
     public struct PlayerData : INetworkSerializable
     {
         //player position
@@ -128,10 +142,9 @@ namespace GameMovement.Network
         //the current tick of the game
         public int _id;
         //player movement state
-        public MovementState _playerstate;
-    
+        public MovementState _playerstate;    
        
-     
+        //makes the packet seralisable
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             if (serializer.IsReader)
@@ -153,7 +166,7 @@ namespace GameMovement.Network
         }
     }
 
-
+    //containers for vector 2s into fixed points
     public struct FixedVec2 : INetworkSerializable
     {
        public Fix64 xpos;
@@ -171,6 +184,7 @@ namespace GameMovement.Network
             ypos = (Fix64)y;
         }
 
+        //make them seralisable
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             if (serializer.IsReader)
@@ -188,7 +202,7 @@ namespace GameMovement.Network
         }
     }
 
-    //public fixed vector 3
+    //public fixed vector 3 storage for vector 3s
     public struct FixedVec3 : INetworkSerializable
     {
         public Fix64 xfix;
@@ -209,6 +223,7 @@ namespace GameMovement.Network
             zfix = (Fix64)z;
         }
 
+        //make them seralisable
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             if (serializer.IsReader)
@@ -227,17 +242,26 @@ namespace GameMovement.Network
             }
         }
     }
+    //player movement states
     public enum MovementState {Moving,Attacking,Reloading,jumping};
+    //player directions
     public enum Direction {Unknown,SouthWest,South,SouthEast,West,Idle,East,NorthWest,North,NorthEast};
 
+    //managerState struct
     public struct ManagerState : INetworkSerializable
     {
+
         public int _allowance;
+        //how long left on the spawn timer
         public float _spawntimer;
+        //number of kills till increase spawn amount
         public int _killedZombiesReset;
+        //number of zombies on screen
         public int _zombnumber;
+        //number of zombies killed
         public int _zombKilled;
 
+        //network seralisation for each of the varibles
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             if (serializer.IsReader)
@@ -308,15 +332,4 @@ public class CahracterBase : NetworkBehaviour
     protected GameObject gunpos;
 
    
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

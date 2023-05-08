@@ -117,7 +117,7 @@ public class Player : CahracterBase
         playerState = MovementState.Moving;
         testDatalist = new List<PlayerData>();
         healthbar = FindObjectOfType<HealthbarScript>();
-        healthbar.Testing(HealthPoint);
+        healthbar.HealthUpdate(HealthPoint);
         AmmoCount = ammoMax;
         var gm = GameObject.FindGameObjectWithTag("Ammo");
         ammotext = gm.GetComponent<TMP_Text>();
@@ -397,7 +397,7 @@ protected void PlayerMovementVoid()
         if (!noDamage)
         {
             HealthPoint -= 20.0f;
-            healthbar.Testing(HealthPoint);
+            healthbar.HealthUpdate(HealthPoint);
         }
         
 
@@ -406,7 +406,7 @@ protected void PlayerMovementVoid()
     public void PlayerReset()
     {
         HealthPoint = 100.0f;
-        healthbar.Testing(HealthPoint);
+        healthbar.HealthUpdate(HealthPoint);
         healthtimer = 0;
         AmmoCount = ammoMax;
         ammotext.text = "Ammo Count: " + AmmoCount.ToString() + "/" + ammoMax.ToString();
@@ -423,7 +423,7 @@ protected void PlayerMovementVoid()
         if(healthtimer >= 2.0f) 
         {
             HealthPoint += 20.0f;
-            healthbar.Testing(HealthPoint);
+            healthbar.HealthUpdate(HealthPoint);
             healthtimer = 0;
         }
     }

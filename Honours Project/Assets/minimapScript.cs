@@ -27,7 +27,7 @@ public class MinimapScript : MonoBehaviour
              
            
         }
-        //find teh player in the scene
+        //find the player in the scene
         else
         {
             player = FindObjectOfType<Player>();

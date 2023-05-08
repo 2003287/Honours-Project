@@ -5,11 +5,11 @@ using UnityEngine;
 
 public class HealthbarScript : MonoBehaviour
 {
+    //gather the Ui image
     public Image healthbar;
 
-    // Start is called before the first frame update
-
-    public void Testing(float testing)
+    //change the slider for the healthbar
+    public void HealthUpdate(float testing)
     {
         if (healthbar)
         {
