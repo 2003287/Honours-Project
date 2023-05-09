@@ -31,7 +31,7 @@ public class Player : CahracterBase
     //networkcomponent
     [SerializeField]
     private NetworkMovementClass netMove;
-    //  public GameObject Text;
+   
 
 
     //health timer
@@ -40,9 +40,9 @@ public class Player : CahracterBase
     [SerializeField]
     Vector3 velocity;
 
-
-    Playpostest playerPosTesting;
-    Playpostest playerPosTesting2;
+    //player position states
+    Playpostest oldPlayerPosState;
+    Playpostest newPlayerPosState;
    
     List<Playpostest> Playerpositions;
     //camera
@@ -53,6 +53,7 @@ public class Player : CahracterBase
     [SerializeField]
     float ammoMax = 12.0f;  
 
+    //jumping varibles
     private bool isGrounded = false;
 
     private bool jumped = false;
@@ -66,37 +67,44 @@ public class Player : CahracterBase
     [SerializeField]
     LayerMask groundLayer;
 
-  
+    //latency
     int frameDelay = 0;
     //healthbarscript
     private HealthbarScript healthbar;
     //ammoscript
     private TMP_Text ammotext;
     //tickrate /// for id of each msg 
-    private int tick = 0;
-    private readonly float tickRate = 1.0f / 60.0f;
-    private float tickDeltaTime = 0f;
+    TickSystem ticks;  
   
     private bool reloadbool = false;
-    PlayerData oldstatetestdata;
-    PlayerData newtestdatata;
+
+    //states for input
+    PlayerData oldInputState;
+    PlayerData newInputState;
+
+    //artifical delay
     private bool artdelay;
     private float delayTimer = 0.0f;
     private int delayCount = 0;
     public bool ArtificalDelay { set { artdelay = value; } }
  
-    //list
-    List<PlayerData> testDatalist;
+    //states for input and packetloss 
+    List<PlayerData> inputStates;
     [SerializeField]
     public int framesReload = 3;
     private MovementState playerState;
-    bool testingsends = false;
+    bool randomPacketLoss = false;
+
+    //invincibility frames
     private bool noDamage;
     public bool GetDamage => noDamage;
     private int damageTick = 0;
+
+    //check the player is alive
     public bool GetAlive => alive;
 
     public float GetHeath => HealthPoint;
+    //get frame delay
     public int GetFrameDelay { get { return frameDelay; } set { frameDelay = value; } }
     //player spawning in the scene
     public override void OnNetworkSpawn()
@@ -107,6 +115,7 @@ public class Player : CahracterBase
         Playerpositions = new List<Playpostest>();
 
         reloading = false;
+        //camera setting
         camera = GameObject.FindGameObjectWithTag("Camera").GetComponent<Camera>();
         if (camera)
         {
@@ -114,72 +123,83 @@ public class Player : CahracterBase
             camera.transform.localPosition = Vector3.zero;
             camera.transform.localRotation = Quaternion.identity;           
         }
+        //player state and Input state
         playerState = MovementState.Moving;
-        testDatalist = new List<PlayerData>();
+        inputStates = new List<PlayerData>();
+
+        //health varibles and ammo varibles
         healthbar = FindObjectOfType<HealthbarScript>();
         healthbar.HealthUpdate(HealthPoint);
         AmmoCount = ammoMax;
         var gm = GameObject.FindGameObjectWithTag("Ammo");
         ammotext = gm.GetComponent<TMP_Text>();
         ammotext.text = "Ammo Count: " + AmmoCount.ToString()+ "/"+ ammoMax.ToString();
+
+        //reset position at the start of the level
         PLayerMovement.enabled = false;
         PLayerMovement.transform.position = spawnPosition;
         PLayerMovement.enabled = true;
+
+        ticks = new TickSystem(0,0);
     }
     // Update is called once per frame
     void Update()
     {
+        //when can move
         if (PLayerMovement)
         {
-            tickDeltaTime += Time.deltaTime;
+            ticks.tickDeltaTime += Time.deltaTime;
 
-            //  Debug.Log(tickDeltaTime);
-            while (tickDeltaTime > tickRate)
+           //if the new frame has occured
+            while (ticks.tickDeltaTime > ticks.tickRate)
             {
+                //while not reloading
                 if (!reloading)
                 {
+                    //check there is a player and get rotation
                     if (PLayer)
                     {
                         PlayerRotationVoid();
 
                     }
 
+                    //move the player
                     PlayerMovementVoid();
 
 
-                    //reset tick and add on
-
-
+                    //update the player if a bullet should spawn
                     if (AmmoCount >= 1.0f)
                     {
                         // if the left mouse is clicked spawn a bullet
                         if (Input.GetButtonDown("Fire1"))
-                        {
-                            Debug.Log("firing");
+                        {                          
                             playerState = MovementState.Attacking;
                         }
 
                     }
-                    //testingsends
+                    //when the there is a delay method
                     DelayMethod();
+                    
+                    //inviciblity frames 40 frames of invinciblity
                     if(noDamage)
                     {
                         var ts = damageTick + 40;
-                        if (tick > ts)
+                        if (ticks.tick > ts)
                         {
                             noDamage = false;
                         }
                     }
 
-                    //gravity function testing
+                    //if the player is not jumping check if they are on the ground
                     if (!jumped)
                     {
                         GravityFunction();
                     }
                     else
                     {
+                        //the player is now jumping
                         playerState = MovementState.jumping;
-                        playerPosTesting2._grounded = false;
+                        newPlayerPosState._grounded = false;
                     }
 
                     //allow the player to reload
@@ -195,15 +215,16 @@ public class Player : CahracterBase
                 else
                 {
                     ammotimer -= Time.deltaTime;
-                    //once the timer reaches 0 the player ahs reloaded
+                    //once the timer reaches 0 the player has reloaded
                     if (ammotimer <= 0.0f)
                     {
+                        //allow the player to move again
                         reloading = false;
                         playerState = MovementState.Moving;
                         ammotext.text = "Ammo Count: " + AmmoCount.ToString() + "/" + ammoMax.ToString();
                         reloadbool = false;
                     }
-
+                    //the player is realing
                     if (!reloadbool)
                     {
                         Reloading();
@@ -211,28 +232,19 @@ public class Player : CahracterBase
 
                     }
 
-                    newtestdatata._id = tick;
+                    //update the tick for the state
+                    newInputState._id = ticks.tick;
                 }
+
+                //check if the player needs to heal or if they are dead
                 HealthMethod();
 
-                tickDeltaTime -= tickRate;
-                tick++;
+                //update ticks
+                ticks.tickDeltaTime -= ticks.tickRate;
+                ticks.tick++;
                 
-
-                CreateSavestates();
-                
-                //for debuging purposes
-              /*  if (Input.GetKeyDown(KeyCode.H))
-                {
-                    Debug.Log("the H was presed");
-                    camera.transform.SetParent(null);
-                    if (GetComponent<NetworkObject>() != null)
-                    {
-                        GetComponent<NetworkObject>().Despawn();
-                    }
-                    
-                    Destroy(this);
-                }*/
+                //save the state and save to the server
+                CreateSavestates();        
 
             }
 
@@ -240,93 +252,109 @@ public class Player : CahracterBase
 
     }
 
+    //check if the player needs to heal
     private void HealthMethod()
     {
+        //heal the player if hurt
         if (HealthPoint < 100.0f)
         {
             HealtingPLayer();
         }
+
+        //the player has died
         if (HealthPoint <= 0)
         {
             alive = false;
         }
     }
 
+    //delays the player input if the artifical delay is set
     private void DelayMethod()
     {
-        if (artdelay && !testingsends)
+        if (artdelay && !randomPacketLoss)
         {
             delayTimer += Time.deltaTime;
+            //once the timer is complete create a random amount of packets losts
             if (delayTimer >= 2.0f)
             {
-                testingsends = true;
+                randomPacketLoss = true;
                 int t = Random.Range(8, 23);
-                delayCount = tick + t;
+                delayCount = ticks.tick + t;
             }
         }
-        if (testingsends)
+        //stop packet loss once the number of loss is complete
+        if (randomPacketLoss)
         {           
-            if (tick >= delayCount)
+            if (ticks.tick >= delayCount)
             {
-                testingsends = false;
+                randomPacketLoss = false;
                 delayTimer = 0;
             }
         }
     }
 
+    //the player has started reloading
     private void RStartReloading()
     {
         reloading = true;
         ammotimer = 1.0f;
         AmmoCount = ammoMax;
         playerState = MovementState.Reloading;       
-        newtestdatata._playerstate = MovementState.Reloading;
-        newtestdatata._direction = Direction.Idle;
-        newtestdatata._position = new FixedVec2(0,0);
-        Debug.Log("Reloading");
+        newInputState._playerstate = MovementState.Reloading;
+        newInputState._direction = Direction.Idle;
+        newInputState._position = new FixedVec2(0,0);
     }
 
+    //save the player state
     protected void CreateSavestates()
     {
+        //position to save
         FixedVec3 t = new FixedVec3(transform.position.x, transform.position.y, transform.position.z);
-        playerPosTesting2._playerpos = t;
-        Playerpositions.Add(playerPosTesting2);
-        testDatalist.Add(newtestdatata);        
+        newPlayerPosState._playerpos = t;
+        //save the playerposition state and input state
+        Playerpositions.Add(newPlayerPosState);
+        inputStates.Add(newInputState);        
+        //send to the server once inital delay has happened
         if (Playerpositions.Count >= frameDelay)
         {
-            if (!testingsends)
+            if (!randomPacketLoss)
             {
-                netMove.ProcessPlayerMoevement(oldstatetestdata, playerPosTesting);
+                netMove.ProcessPlayerMoevement(oldInputState, oldPlayerPosState);
             }
             
+            //remove teh earliest element
             Playerpositions.RemoveAt(0);
-            testDatalist.RemoveAt(0);          
+            inputStates.RemoveAt(0);          
         }        
-        playerPosTesting = Playerpositions[0];
-        oldstatetestdata = testDatalist[0];
+        //set the last state to the earliest element for both position and input states
+        oldPlayerPosState = Playerpositions[0];
+        oldInputState = inputStates[0];
     }
     //void for reloading
     protected void Reloading()
     {
         var t = new FixedVec2(0, 0);
         var d = Direction.Idle;        
-        oldstatetestdata._position = t;
-        oldstatetestdata._direction = d;
-        oldstatetestdata._playerstate = MovementState.Reloading;        
-        oldstatetestdata._direction = d;
-        for (int i = 0; i < testDatalist.Count; i++)
+        //update the state sent to the server
+        oldInputState._position = t;
+        oldInputState._direction = d;
+        oldInputState._playerstate = MovementState.Reloading;        
+        oldInputState._direction = d;
+        for (int i = 0; i < inputStates.Count; i++)
         {
-            PlayerData ts = testDatalist[i];
+            PlayerData ts = inputStates[i];
            
             ts._playerstate = MovementState.Reloading;            
             ts._direction = d;
             ts._position = t;
-            testDatalist[i] = ts;
+            inputStates[i] = ts;
         }
-        oldstatetestdata = testDatalist[0];
-        //Input.ResetInputAxes();
+        //get teh first saved element
+        oldInputState = inputStates[0];
+        
+        // used due to rotation happening during reloading
         Input.ClearLastPenContactEvent();
-        playerPosTesting._rotation = new FixedVec2(0,0);      
+        oldPlayerPosState._rotation = new FixedVec2(0,0);      
        
     }
 
@@ -334,6 +362,7 @@ public class Player : CahracterBase
     {
         reloading = true;
     }
+    //the player has jumped in the air
     public void FixJumping()
     {
         playerState = MovementState.Moving;
@@ -347,53 +376,61 @@ protected void PlayerMovementVoid()
         //get the inputs of the keyboard for now
         float xMove = Input.GetAxis("Horizontal");
         float yMove = Input.GetAxis("Vertical");
+
+        //create the direction
         var d = netMove.ProcessPlayerDirection(xMove,yMove);
         var check = NetworkHelper.Vec2Creation(d);    
        
-
+        //create a state to save
         PlayerData help = new PlayerData()
         {
             _position = check,
             _direction = d,           
-            _id = tick,
+            _id = ticks.tick,
             _playerstate = playerState,           
         };
 
-        newtestdatata = help;
+        newInputState = help;
     }
 
-    //void for player rotaion
+    //gather the rotation of the player and save it
     protected void PlayerRotationVoid()
     {
         //get the movements of the mouse
         float MouseX = Input.GetAxis("MouseX") * MouseSpeed * Time.deltaTime;
-        float MouseY = Input.GetAxis("MouseY") * MouseSpeed * Time.deltaTime;
-      //  Debug.Log("thisrotation" + MouseX + MouseY);
-        playerPosTesting2._rotation = new FixedVec2(MouseX,MouseY);     
+        float MouseY = Input.GetAxis("MouseY") * MouseSpeed * Time.deltaTime;     
+        newPlayerPosState._rotation = new FixedVec2(MouseX,MouseY);     
     }
 
+    //spawn in a projectile
     public GameObject ProjectileSpawn()
     {
+        //spawn the bullet
         GameObject bullet = Instantiate(projectile, gunpos.transform.position, transform.rotation);
         bullet.GetComponent<Rigidbody>().AddForce(bullet.transform.forward * ProjectileSpeed, ForceMode.Impulse);        
+        //reset the players state
         playerState = MovementState.Moving;
-        oldstatetestdata._playerstate = MovementState.Moving;        
-        for(int i = 0; i<testDatalist.Count;i++)
+        oldInputState._playerstate = MovementState.Moving;        
+        for(int i = 0; i<inputStates.Count;i++)
         {
-            if (testDatalist[i]._playerstate == MovementState.Attacking)
+            if (inputStates[i]._playerstate == MovementState.Attacking)
             {
-                var ts = testDatalist[i];
+                var ts = inputStates[i];
                 ts._playerstate = MovementState.Moving;
-                testDatalist[i] = ts;
+                inputStates[i] = ts;
             }
         }
+        //update ammo
         AmmoCount--;
         ammotext.text = "Ammo Count: " + AmmoCount.ToString() + "/" + ammoMax.ToString();
         netMove.CanFireAgain();
         return bullet;
     }
+
+    //damage the player when hurt
     public void PlayerDamaged()
     {
+        // if the player can be hurt, hurt the player
         if (!noDamage)
         {
             HealthPoint -= 20.0f;
@@ -403,25 +440,33 @@ protected void PlayerMovementVoid()
 
     }
 
+    //reset the players postion and varibles after death
     public void PlayerReset()
     {
+        //update health
         HealthPoint = 100.0f;
         healthbar.HealthUpdate(HealthPoint);
         healthtimer = 0;
+        //reset ammo
         AmmoCount = ammoMax;
         ammotext.text = "Ammo Count: " + AmmoCount.ToString() + "/" + ammoMax.ToString();
         ammotimer = 0;
+        //fix the state and the ticks
         playerState = MovementState.Moving;
         alive = true;
         noDamage = true;
-        damageTick = tick;
+        damageTick = ticks.tick;
     }
 
+    //heal the player if they are hurt
     private void HealtingPLayer()
     {
-        healthtimer += tickRate;
+        healthtimer += ticks.tickRate;
+        
+        //timer check
         if(healthtimer >= 2.0f) 
         {
+            //update the players health and the ui element
             HealthPoint += 20.0f;
             healthbar.HealthUpdate(HealthPoint);
             healthtimer = 0;
@@ -431,16 +476,19 @@ protected void PlayerMovementVoid()
     {
         //check if the player is on the ground before collisions
         isGrounded = Physics.CheckSphere(groundPos.position,0.4f,groundLayer);
+        //allow the player to jump again
         if (isGrounded && playerState != MovementState.jumping)
         {
-            playerPosTesting2._grounded = true;
+            newPlayerPosState._grounded = true;
             touchGroundTimer = 0;
         }
         else
         {
-          playerPosTesting2._grounded =  false;
-            touchGroundTimer += Time.deltaTime;
-            if (touchGroundTimer >= 4.0f)
+            //the player is not grounded
+            newPlayerPosState._grounded =  false;
+            touchGroundTimer += ticks.tickDeltaTime;
+            //check the player is not on the ground for a long duration
+            if (touchGroundTimer >= 8.0f)
             {
                 PLayerMovement.enabled = false;
                 PLayerMovement.transform.position = spawnPosition;

@@ -7,11 +7,22 @@ using UnityEngine;
 
 namespace GameMovement.Network
 {
-    //https://www.youtube.com/watch?v=leL6MdkJEaE client prediction
-    //server cient reconciliation https://www.youtube.com/watch?v=3SILT4-vZWE 
+   
+    //basics of prediction and recoconiliation used as guidance for networking 
+    //Carl Boisvert Dev (2022), Unity Netcode For Gameobject - Client Prediction, available at: https://www.youtube.com/watch?v=leL6MdkJEaE
+    //accessed on: 27th February 2023
 
-    ///https://github.com/zacpeelyates/unityrollback
-     //implementation of rollback taking GGPO and implementing it in C#
+    //basics of prediction used as guidance for networking 
+    //Carl Boisvert Dev (2023), Unity Netcode For Gameobject - Client Reconiliation, available at: https://www.youtube.com/watch?v=3SILT4-vZWE
+    //accessed on: 27th February 2023
+
+
+    //number notation and guidance for rollback 
+    // Zacpeelyates (2022),unityrollback, available at:https://github.com/zacpeelyates/unityrollback
+    //accessed on 15th february 2023
+
+
+    //implementation of rollback taking GGPO and implementing it in C#
     //Github Inc 2022 HouraiTeahouse Backroll(2021) available at: https://github.com/HouraiTeahouse/Backroll
     //(Accessed: 28 Novemeber 2022)
     public class NetworkMovementClass : NetworkBehaviour
@@ -116,12 +127,14 @@ namespace GameMovement.Network
                         //check if rollback should happen
                         if (rollback <= 0)
                         {
+                            //move player and save predicted state
                             Moveplayer( oldMovementState);
 
                             SavePredictedGamestate(ticks.tick);
                         }
                         else
                         {
+                            //rollback and seve the next state
                             Rollback();
                             
                             SavePredictedGamestate(ticks.tick);
@@ -278,16 +291,18 @@ namespace GameMovement.Network
                 if (!firing)
                 {
                     firing = true;
-                    gameManager.TestingSwan();                   
+                    gameManager.SpawnProjectile();                   
                 }
                
             }
             else if (oldMovementState._playerstate == MovementState.Reloading)
             {
+                //reset the position of the player
                 PLayerMovement.enabled = false;
                 PLayerMovement.transform.position = NetworkHelper.FixToVec3(PlayerPositionTest._playerpos);
                 PLayerMovement.enabled = true;
               
+                //update predicted states to Idle
                 for (int i = (int)rollback; i > 0; i--)
                 {
                     var t = ticks.tick - i;                          
@@ -297,11 +312,14 @@ namespace GameMovement.Network
             }
             else if (oldMovementState._playerstate == MovementState.jumping)
             {
+                //reset position
                 PLayerMovement.enabled = false;
                 PLayerMovement.transform.position = NetworkHelper.FixToVec3(PlayerPositionTest._playerpos);
                 PLayerMovement.enabled = true;
-              
+                
+                //create jump vector
                 jumpvelocity = NetworkHelper.JumpingFix(jumpvelocity,10);
+                //reaply movement and save teh states
                 for (int i = (int)rollback; i > 0; i--)
                 {
                     var t = ticks.tick - i;
@@ -309,6 +327,7 @@ namespace GameMovement.Network
                     Moveplayer( oldMovementState);                  
                     SavePredictedGamestate(t);
                 }
+                //the player is jumping
                 gameManager.PLayerJumping();
             }
 
@@ -319,19 +338,22 @@ namespace GameMovement.Network
             rollback = 0;
         }
 
+        //the player is allowed to fire a new bullet
         public void CanFireAgain()
         {
             if (firing)
             {
-                firing = false;
-                Debug.Log("I can now fire another bullet");
+                firing = false;               
             }
         }
+        //save the predicted state and update last known state
         private void SavePredictedGamestate(int t)
         {           
             oldMovementState._id = t;
             gameStatesDic[t] = oldMovementState;
         }
+
+        //send packets to the server
         public void ProcessPlayerMoevement( PlayerData test, Playpostest play)
         {              
                 if (IsServer)
@@ -341,13 +363,13 @@ namespace GameMovement.Network
                 }               
         }
 
-
+        //get the servers tick
         public int ReturnTick()
         {
             return ticks.tick;
         }
         
-        //taken from here
+        //Create a direction for the player
         public Direction ProcessPlayerDirection(float xpos, float ypos)
         {
             var xmove = NetworkHelper.FloatToInt(xpos);

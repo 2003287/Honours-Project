@@ -20,6 +20,8 @@ public class ZombieScript : CahracterBase
    
     //varibles used by the enemy for the state, pathfinding and if hit
     private Enemystate enemyState;
+
+    public Enemystate GetEnemyState => enemyState;
     private NavMeshAgent agent;
     private bool hitBool;
 

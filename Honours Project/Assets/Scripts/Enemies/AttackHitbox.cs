@@ -31,7 +31,7 @@ public class AttackHitbox : MonoBehaviour
                 Attacking();
             }
 
-            Debug.Log("the enemy is attacking" + tick);
+            
             tick++;
             //after 24 frames update to signify the player can be hit again
             //done due to error that froze the enemy after Rollback  
@@ -62,6 +62,26 @@ public class AttackHitbox : MonoBehaviour
                 }
             }
             
+        }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.gameObject.tag == "Player")
+        {
+           //check the player is still colliding with the enemy
+            if (!attack)
+            {
+                if (parent != null)
+                {
+                    //if the enemy can attack, attack the player
+                    if (parent.GetEnemyState == GameMovement.Network.Enemystate.Running)
+                    {
+                        SetAttacking();
+                        attack = true;
+                    }
+                }                
+            }           
         }
     }
     //when the player exits the collision box reset collision varibles

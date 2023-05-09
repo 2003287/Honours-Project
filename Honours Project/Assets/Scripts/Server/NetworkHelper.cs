@@ -110,6 +110,37 @@ public static class NetworkHelper
         }
         return t;
     }
+
+
+    public static Transform GetClosestTransForm(List<Transform> spawnPoints,Player player)
+    {
+        int firstpos = 0;
+        Transform basePos = spawnPoints[0];
+        float distance = 0.0f;
+        foreach (Transform position in spawnPoints)
+        {
+            if (firstpos == 0)
+            {
+                basePos = position;
+                firstpos++;
+                distance = Vector3.Distance(basePos.position, player.gameObject.transform.position);
+            }
+            else
+            {
+                var newDist = Vector3.Distance(position.position, player.gameObject.transform.position);
+                if (newDist < distance)
+                {
+                    distance = newDist;
+                    basePos = position;
+                }
+            }
+        }
+
+        return basePos;
+
+    }
+
+
     //apply 
     public static Vector3 Jumping(Vector3 jumping)
     {

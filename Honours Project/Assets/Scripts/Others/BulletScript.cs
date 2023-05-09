@@ -166,36 +166,40 @@ public class BulletScript : MonoBehaviour
     public void BulletRollback(int ticks)
     {
         //check the dictionary contains the tick recieved
-        if (bulletDictionary.ContainsKey(ticks))
+        if (bulletDictionary != null)
         {
-            //get the bullet state
-            var bState = bulletDictionary[ticks];
+            if (bulletDictionary.ContainsKey(ticks))
+            {
+                //get the bullet state
+                var bState = bulletDictionary[ticks];
 
-            //when the bullet is dead ignore Rollback
-            if (!bState._onscreen)
-            {                
-                return;
-            }
-            else
-            {               
-                //just do a rollback as nothing will change
-                if (alive == bState._onscreen)
+                //when the bullet is dead ignore Rollback
+                if (!bState._onscreen)
                 {
-                    Rolling(ticks);
+                    return;
                 }
                 else
                 {
-                    //right it has hit something and needs to redo movement
-                    if (hittype == 1 || hittype == 2)
+                    //just do a rollback as nothing will change
+                    if (alive == bState._onscreen)
                     {
-                        //redisplay objects
-                        Redisplay();
                         Rolling(ticks);
                     }
-                }
+                    else
+                    {
+                        //right it has hit something and needs to redo movement
+                        if (hittype == 1 || hittype == 2)
+                        {
+                            //redisplay objects
+                            Redisplay();
+                            Rolling(ticks);
+                        }
+                    }
 
+                }
             }
-        }      
+        }
+       
     }
 
     //redisaply the bullet in the scene

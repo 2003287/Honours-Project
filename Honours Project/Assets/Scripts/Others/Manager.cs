@@ -6,6 +6,11 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine;
 
+//background music for the level
+//Aussens@iter ft kara Square, 2018, Ukulele Space Metal (Instrumental),
+//Available at: https://dig.ccmixter.org/files/tobias_weber/57791, Accessed on: 15/4/23. 
+//Ukulele Space Metal (Instrumental) by Aussens@iter (c) copyright 2018 Licensed under a Creative Commons Attribution Noncommercial
+//(3.0) license.
 
 public class Manager : MonoBehaviour
 {
@@ -90,9 +95,11 @@ public class Manager : MonoBehaviour
     private Dictionary<int, ManagerState> GameStateDic;
 
     //tick class
-    private int tick = 0;    
-    private float tickRate = 1.0f / 60.0f;
-    private float tickDeltaTime = 0f;
+    TickSystem ticks;
+    //private int tick = 0;    
+    //private float tickRate = 1.0f / 60.0f;
+   // private float tickDeltaTime = 0f;
+
     private float timer = 240.0f;
     private bool deathallowed = true;
     private int tickdeath = 0;
@@ -118,8 +125,7 @@ public class Manager : MonoBehaviour
             {
                 player = FindObjectOfType<Player>();
                 player.GetFrameDelay = framedelay;
-                player.ArtificalDelay = artDelay;
-                Debug.Log("this player was found in the scene");
+                player.ArtificalDelay = artDelay;              
             }
             //spawn in a zombie on screen
             InstantiateZombie();
@@ -127,9 +133,9 @@ public class Manager : MonoBehaviour
         }
         //get the text on screen
         var gm = GameObject.FindGameObjectWithTag("Timer");
-        Debug.Log("Varname"+ gm);
+     
         Text = gm.GetComponent<TMP_Text>();
-        Debug.Log("Varname" + Text);
+       
         var sm = GameObject.FindGameObjectWithTag("Score");
         scoreText = sm.GetComponent<TMP_Text>();
         scoreText.text = "Score: " + score.ToString();
@@ -139,49 +145,55 @@ public class Manager : MonoBehaviour
         zombieDicList = new Dictionary<int, List<GameObject>>();
         bulletDicList = new Dictionary<int, List<GameObject>>();
         bulletList = new List<GameObject>();
+
+        ticks = new TickSystem(0,0);
     }
+    //Remove a zombie from the list
     public void RemoveFromList(GameObject prefab)
     {
         if (deathallowed)
         {
+            //remove the zombie
             deathallowed = false;
-            tickdeath = tick;
+            tickdeath = ticks.tick;
             if (zombieList.Contains(prefab))
             {
                 zombieList.Remove(prefab);
                 Debug.Log("Removed");
             }
+            //adapt the varibles
             killedZombies++;
             numberOfZombies--;
             totalKilledZombs++;
+            //update score
             score += 20;
             scoreText.text = "Score: " + score.ToString();
         }
        
     }
 
+    //clear all the lists and dictionary
     public void Deload()
     {       
         GameStateDic.Clear();
         bulletDicList.Clear();
         zombieDicList.Clear();
     }
-    public void JustATest(int ticks)
+    public void JustATest(int tick)
     {
         //check same number of zombies
         
-        if (GameStateDic.ContainsKey(ticks))
+        if (GameStateDic.ContainsKey(tick))
         {
-            var t = GameStateDic[ticks];          
-            var testing = zombieDicList[tick-1];
-            if (zombieDicList.ContainsKey(ticks))
+            var t = GameStateDic[tick];          
+            var testing = zombieDicList[ticks.tick-1];
+            if (zombieDicList.ContainsKey(tick))
             {
-                testing = zombieDicList[ticks];
+                testing = zombieDicList[tick];
             }
             //Same number of zombies
             if (t._zombnumber == numberOfZombies)
-            {
-                Debug.Log("A zombie is fine");
+            {              
                 //check number of kills are the same
                 //if so wonderful and rollback
                 if (t._zombKilled == totalKilledZombs)
@@ -190,13 +202,15 @@ public class Manager : MonoBehaviour
                     {                        
                         if (item != null)
                         {
-                            item.GetComponent<ZombieScript>().ResetPosition(ticks);
+                            //aply rollback to the zombie
+                            item.GetComponent<ZombieScript>().ResetPosition(tick);
                         }
                         
                     }
                 }
                 else
                 {
+                    //apply rollback to all the zombies
                     for (int i = 0; i < zombieList.Count; i++)
                     {
                         var zc = zombieList.Count - 1;
@@ -205,7 +219,7 @@ public class Manager : MonoBehaviour
                             if (i != zc)
                             {
 
-                                zombieList[i].GetComponent<ZombieScript>().ResetPosition(ticks);
+                                zombieList[i].GetComponent<ZombieScript>().ResetPosition(tick);
                             }
                             else
                             {
@@ -219,7 +233,7 @@ public class Manager : MonoBehaviour
             //player has just killed a zombie
             else if (t._zombnumber > numberOfZombies)
             {
-
+                //has never happened but left in just incase
                 if (t._zombKilled == totalKilledZombs)
                 {
                     Debug.Log("the zombie died this frame and hasn't been accounted for yet");
@@ -227,8 +241,9 @@ public class Manager : MonoBehaviour
                 }
                 else
                 {
-                    var tcheck = tick - ticks;
-
+                    //if rollback is more than two frames
+                    var tcheck = ticks.tick - tick;
+                    //reset the varibles in the level
                     if (tcheck <= 2)
                     {
 
@@ -243,75 +258,84 @@ public class Manager : MonoBehaviour
                                 GameStateDic[g] = ts;
                             }
                         }
-                    }
-                    Debug.Log("the server has has just killed the zombie");
+                    }                   
                 }
-                //death inbetween states figureout how to handle it
+                //death inbetween states only apply rollback to alive zombies
                 foreach (var item in testing)
                 {
                     if (zombieList.Contains(item))
                     {
-                        Debug.Log("zombie is fine right now");
+                        
                         if (item != null)
                         {
-                            item.GetComponent<ZombieScript>().ResetPosition(ticks);
+                            item.GetComponent<ZombieScript>().ResetPosition(tick);
                         }                       
                     }                             
                 }
             }
             else
-            {
-                Debug.Log("A zombie has spawned fix it");
-                //spawned in a new zombie
-                //figure this out
+            {         
+               //a new zombie has spawned in               
                 foreach (var item in zombieList)
                 {
                     if (item != null)
                     {
                         var zom = item.GetComponent<ZombieScript>();
-                        if (zom.GetfirstTick() >= ticks)
+                        //check if the first ick is after the frame of rollback
+                        if (zom.GetfirstTick() >= tick)
                         {
+                            //do all the frames inbetween but not the current frame
                             zom.FullReset();
                         }
                         else
                         {
-                            zom.ResetPosition(ticks);
+                            //redo rollback for all predicted frames
+                            zom.ResetPosition(tick);
                         }
                     }
                   
                 }
 
             }
-
-            var bl= bulletDicList[ticks];
+            //do rollback for the bullets
+            var bl= bulletDicList[tick];
+            //if there is a bullet apply rollback
             if (bl.Count > 0)
             {
                 foreach (var item in bl)
                 {
                     if (item != null)
                     {
-                        item.GetComponent<BulletScript>().BulletRollback(ticks);
+                        item.GetComponent<BulletScript>().BulletRollback(tick);
                     }
                 }
             }
-            //bullets
             
-        }       
-        Debug.Log("max zombies" +maxZombies);
-        Debug.Log("total kills" +totalKilledZombs);
+            
+        }             
     }
-    public void TestingSwan()
+
+    //spawn in a projectile
+    public void SpawnProjectile()
     {
-        var t = player.ProjectileSpawn();      
-        bulletsSpawned++;
-        bulletList.Add(t);
-        var forward = t.transform.position + (t.transform.forward * 5);
-        AudioSource.PlayClipAtPoint(bulletspawn, forward);
+        //spawn a bullet and add to list
+        if (player != null)
+        {
+            var t = player.ProjectileSpawn();
+            bulletsSpawned++;
+            bulletList.Add(t);
+            //play audio for the bullet fired
+            var forward = t.transform.position + (t.transform.forward * 5);
+            AudioSource.PlayClipAtPoint(bulletspawn, forward);
+        }
+       
     }
+    //remove a bullet from the list
     public void BulletRemove(GameObject game,int ht)
     {
         bulletList.Remove(game);     
     }
+    //fix the players jumping
     public void PLayerJumping()
     {
         player.FixJumping();
@@ -320,29 +344,13 @@ public class Manager : MonoBehaviour
     {
         spawnedin = true;
         numberOfZombies++;
-        Transform basePos = gameObject.transform;
-        int firstpos = 0;
-        var distance = 0.0f;
-        foreach (Transform position in spawnPoints)
-        {
-            if (firstpos == 0)
-            {
-                basePos = position;
-                firstpos++;
-                distance = Vector3.Distance(basePos.position,player.gameObject.transform.position);
-            }
-            else
-            {
-                var newDist = Vector3.Distance(position.position, player.gameObject.transform.position);
-                if (newDist < distance)
-                {
-                    distance = newDist;
-                    basePos = position;
-                }
-            }
-        }
-        GameObject zm = Instantiate(zombiePrefab,basePos.position, Quaternion.identity);
+        //get the spawn position
+        Transform basePos = NetworkHelper.GetClosestTransForm(spawnPoints,player);
+       
 
+        //spawn the zombie in
+        GameObject zm = Instantiate(zombiePrefab,basePos.position, Quaternion.identity);
+        //should the zombie spawned be a runner or not
         if (spawnRunningZombie >= 2)
         {
             zm.GetComponent<ZombieScript>().GetRunner = true;
@@ -352,6 +360,8 @@ public class Manager : MonoBehaviour
         {
             spawnRunningZombie++;
         }
+
+        //add to the list of zombies and play audio where they spawned
         zombieList.Add(zm);
         AudioSource.PlayClipAtPoint(Zombspawn, zm.transform.position);
     }
@@ -360,43 +370,53 @@ public class Manager : MonoBehaviour
     {
         if (started)
         {
-            Debug.Log("JustForNow" + spawnRunningZombie);
-            tickDeltaTime += Time.deltaTime;
+           //update the timer
+            ticks.tickDeltaTime += Time.deltaTime;
             TimerFunction();
-            while (tickDeltaTime > tickRate)
+            while (ticks.tickDeltaTime > ticks.tickRate)
             {
+                //end the level and transition to the home screen
                 if (player == null)
                 {
-                    Debug.Log("the player is dead boyoy");
-                    NetworkManager.Singleton.Shutdown();
+                    if (NetworkManager.Singleton != null)
+                    {
+                        NetworkManager.Singleton.Shutdown();
+                    }
+                    
                     NetworkManager networkManager = GameObject.FindObjectOfType<NetworkManager>();
                     DataSet();
-                    Destroy(networkManager.gameObject);
+                    if (networkManager != null)
+                    {
+                        Destroy(networkManager.gameObject);
+                    }
                     SceneManager.LoadScene("MainMenu");
                 }
                 else
                 {
+                    //check if a zombie should spawn in
                     ZombieSpawning();
-
+                    //save and delete the states
                     StateSaving();
                     DeletingStates();
-                    tick++;
+                    //update the ticks
+                    ticks.tick++;
+                    //update the death allowed for two ticks
                     if (!deathallowed)
                     {
                         var t = tickdeath + 2;
-                        if (tick > t)
+                        if (ticks.tick > t)
                         {
                             deathallowed = true;
-                            tickdeath = tick;
+                            tickdeath = ticks.tick;
                         }
                     }
                 }
-
-                tickDeltaTime -= tickRate;
+                //update the tick rate
+                ticks.tickDeltaTime -= ticks.tickRate;
             }
 
            
-          
+            //when the level ends nullify the player
             if (timer <= 0.0f)
             {
                 player = null;
@@ -406,15 +426,16 @@ public class Manager : MonoBehaviour
 
     }
 
+    //update dataset
     private void DataSet()
     {
+        //create the accuracy
         var f = (float)bulletsSpawned;
         var t = (zomHits / f) * 100.0f;
+        //store the statistics for each level
         switch (level)
         {
-            case 1:
-               
-                Debug.Log("t varibble is" + t);
+            case 1:           
                 DataStorage.Level1StatsCreation(deaths, score,t);
                 break;
             case 2:
@@ -425,26 +446,30 @@ public class Manager : MonoBehaviour
                 break;         
         }
     }
-
+    //the player has died find where to spawn them
     public Vector3 GetSpawnPosition()
     {
+        //update deaths and score
         deaths++;
         score -= 50;
         scoreText.text = "Score: " + score.ToString();
+        //create distance 
         var d = Vector3.Distance(player.transform.position, Deathpoints[0].position);
         var d2 = Vector3.Distance(player.transform.position, Deathpoints[1].position);
+        //check which position the player is further away from
         if (d > d2)
         {
-            Debug.Log("dist1 is higher");
+            
             return Deathpoints[0].position;
         }
         else
         {
-            Debug.Log("dist2 is higher");
+            
             return Deathpoints[1].position;           
         }       
     }
 
+    //timer funstion used to display time left on screen
     private void TimerFunction()
     {
         timer -= Time.deltaTime;
@@ -453,13 +478,17 @@ public class Manager : MonoBehaviour
         Text.text = "Time Left: " + ms.ToString() + "." + ts.ToString() + "s";
     }
 
+    //functions for check number of zombies dead and if one should spawn in 
     private void ZombieSpawning()
     {
+        //if there is not enough zombies on screen to meet the maximum
         if (zombieList.Count <= maxZombies)
         {
+            //do a timer to spawn in new zombies
             spawnTimer += Time.deltaTime;
             if (spawnTimer >= timeTillSpawn)
             {
+                //spawn a sombie and reset the varibles
                 if (!spawnedin)
                 {
                     InstantiateZombie();
@@ -468,7 +497,7 @@ public class Manager : MonoBehaviour
                 spawnedin = false;
             }
         }
-
+        //update the max numbre of zombies on the screen every time 5 die
         if (killedZombies >= 5)
         {
             if (maxZombies < maxNumberZombies)
@@ -478,6 +507,10 @@ public class Manager : MonoBehaviour
             }
         }
     }
+
+    //basic house keeping
+
+    //save the states for the dictionaries and lists
     private void StateSaving()
     {
         ManagerState ms = new ManagerState()
@@ -488,18 +521,18 @@ public class Manager : MonoBehaviour
             _zombnumber = numberOfZombies,
             _zombKilled = totalKilledZombs,
         };
-        GameStateDic.Add(tick,ms);
-        zombieDicList.Add(tick,zombieList);
-        bulletDicList.Add(tick,bulletList);
+        GameStateDic.Add(ticks.tick,ms);
+        zombieDicList.Add(ticks.tick,zombieList);
+        bulletDicList.Add(ticks.tick,bulletList);
     }
 
-    //removing states from dictionary
+    //removing states from dictionaries
     private void DeletingStates()
     {
-        if (tick >= framedelay)
+        if (ticks.tick >= framedelay)
         {
-            var t = tick - framedelay;
-            if (GameStateDic.ContainsKey(tick))
+            var t = ticks.tick - framedelay;
+            if (GameStateDic.ContainsKey(ticks.tick))
             {
                 GameStateDic.Remove(t);
             }
